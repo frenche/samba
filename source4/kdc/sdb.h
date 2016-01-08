@@ -64,7 +64,7 @@ struct SDBFlags {
 	unsigned int allow_kerberos4:1;
 	unsigned int allow_digest:1;
 	unsigned int locked_out:1;
-	unsigned int _unused18:1;
+	unsigned int require_pwchange:1;
 	unsigned int _unused19:1;
 	unsigned int _unused20:1;
 	unsigned int _unused21:1;

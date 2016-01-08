@@ -51,7 +51,7 @@ static void sdb_flags_to_hdb_flags(const struct SDBFlags *s,
 	h->allow_kerberos4 = s->allow_kerberos4;
 	h->allow_digest = s->allow_digest;
 	h->locked_out = s->locked_out;
-	h->_unused18 = s->_unused18;
+	h->require_pwchange = s->require_pwchange;
 	h->_unused19 = s->_unused19;
 	h->_unused20 = s->_unused20;
 	h->_unused21 = s->_unused21;
