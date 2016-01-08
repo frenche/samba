@@ -424,8 +424,8 @@ static struct GUID *get_cert_guid(struct torture_context *tctx,
 
 	hx509_context_init(&hctx);
 
-	hret = hx509_cert_init_data(hctx, cert_data, cert_len, &cert);
-	if (hret) {
+	cert = hx509_cert_init_data(hctx, cert_data, cert_len, NULL);
+	if (cert == NULL) {
 		torture_comment(tctx, "error while loading the cert\n");
 		hx509_context_free(&hctx);
 		return NULL;
@@ -476,8 +476,8 @@ static DATA_BLOB *encrypt_blob_pk(struct torture_context *tctx,
 
 	hx509_context_init(&hctx);
 
-	hret = hx509_cert_init_data(hctx, cert_data, cert_len, &cert);
-	if (hret) {
+	cert = hx509_cert_init_data(hctx, cert_data, cert_len, NULL);
+	if (cert == NULL) {
 		torture_comment(tctx, "error while loading the cert\n");
 		hx509_context_free(&hctx);
 		return NULL;
@@ -750,9 +750,7 @@ static bool test_RetrieveBackupKeyGUID(struct torture_context *tctx,
 	enum dcerpc_AuthType auth_type;
 	enum dcerpc_AuthLevel auth_level;
 
-	if (r == NULL) {
-		return false;
-	}
+	torture_assert(tctx, r != NULL, "createRetreiveBackupKeyGUIDStruct failed!");
 
 	dcerpc_binding_handle_auth_info(b, &auth_type, &auth_level);
 
@@ -1123,8 +1121,8 @@ static bool test_RetrieveBackupKeyGUID_2048bits(struct torture_context *tctx,
 
 		out_blob.length = *r->out.data_out_len;
 
-		hret = hx509_cert_init_data(hctx, out_blob.data, out_blob.length, &cert);
-		torture_assert_int_equal(tctx, hret, 0, "hx509_cert_init_data failed");
+		cert = hx509_cert_init_data(hctx, out_blob.data, out_blob.length, NULL);
+		torture_assert(tctx, cert != NULL, "hx509_cert_init_data failed");
 
 		hret = hx509_cert_get_SPKI(hctx, cert , &spki);
 		torture_assert_int_equal(tctx, hret, 0, "hx509_cert_get_SPKI failed");
