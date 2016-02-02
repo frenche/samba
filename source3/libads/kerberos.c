@@ -677,6 +677,7 @@ bool create_local_private_krb5_conf_for_domain(const char *realm,
 	    talloc_asprintf(fname,
 			    "[libdefaults]\n\tdefault_realm = %s\n"
 			    "%s"
+			    "\tfcache_strict_checking = false\n"
 			    "\tdns_lookup_realm = false\n\n"
 			    "[realms]\n\t%s = {\n"
 			    "%s\t}\n"

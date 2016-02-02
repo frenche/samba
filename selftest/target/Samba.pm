@@ -246,7 +246,8 @@ sub mk_krb5_conf($$)
  # We are running on the same machine, do not correct
  # system clock differences
  kdc_timesync = 0
-
+ # TODO...
+ fcache_strict_checking = false
 ";
 
 	if (defined($ctx->{krb5_ccname})) {
