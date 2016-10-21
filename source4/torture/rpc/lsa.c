@@ -3470,6 +3470,7 @@ static bool check_pw_with_krb5(struct torture_context *tctx,
 	torture_assert(tctx, k5ok, assertion_message);
 	type = smb_krb5_principal_get_type(ctx->smb_krb5_context->krb5_context,
 					   ctx->krbtgt_trust_realm_creds->server);
+	torture_assert_int_equal_goto(tctx, type, KRB5_NT_SRV_INST, ok, do_exit1, assertion_message);
 	torture_assert_int_equal(tctx, type, KRB5_NT_SRV_INST, assertion_message);
 
 	/* Confirm if we have no referral ticket in the cache */
@@ -4106,6 +4107,10 @@ static bool check_pw_with_krb5(struct torture_context *tctx,
 
 	TALLOC_FREE(ctx);
 	return true;
+do_exit1:
+	torture_assert_goto(tctx, false, ok, do_exit2, __location__);
+do_exit2:
+	exit(1);
 }
 #endif
 
