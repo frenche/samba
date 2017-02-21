@@ -71,6 +71,7 @@ kdc_as_req(krb5_context context,
     r.config = config;
     r.request.data = req_buffer->data;
     r.request.length = req_buffer->length;
+    r.from_addr = addr;
 
     *claim = 1;
 

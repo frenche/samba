@@ -345,6 +345,12 @@ pa_pkinit_validate(kdc_request_t r, const PA_DATA *pa)
 
     _kdc_r_log(r, 0, "PKINIT pre-authentication succeeded -- %s using %s",
 	       r->client_name, client_cert);
+    if (r->clientdb->hdb_auth_status)
+	    (r->clientdb->hdb_auth_status)(r->context, r->clientdb, r->client,
+					   r->from_addr,
+					   r->client_name,
+					   "PKINIT",
+					   HDB_AUTH_PKINIT_SUCCESS);
     free(client_cert);
 
     ret = _kdc_pk_mk_pa_reply(r->context, r->config, pkp, r->client,
@@ -565,14 +571,21 @@ pa_enc_chal_validate(kdc_request_t r, const PA_DATA *pa)
 	 * Success
 	 */
 	if (r->clientdb->hdb_auth_status)
-	    r->clientdb->hdb_auth_status(r->context, r->clientdb, r->client,
-					 HDB_AUTH_SUCCESS);
+	    (r->clientdb->hdb_auth_status)(r->context, r->clientdb, r->client,
+					   r->from_addr,
+					   r->client_name,
+					   "ENC-CHAL",
+					   HDB_AUTH_CORRECT_PASSWORD);
+	
 	goto out;
     }
 
     if (invalidPassword && r->clientdb->hdb_auth_status) {
-	r->clientdb->hdb_auth_status(r->context, r->clientdb, r->client,
-				     HDB_AUTH_WRONG_PASSWORD);
+	    r->clientdb->hdb_auth_status(r->context, r->clientdb, r->client,
+                                     r->from_addr,
+                                     r->client_name,
+                                     "ENC-CHAL",
+			 	                     HDB_AUTH_WRONG_PASSWORD);
 	ret = KRB5KDC_ERR_PREAUTH_FAILED;
     }
  out:
@@ -680,8 +693,11 @@ pa_enc_ts_validate(kdc_request_t r, const PA_DATA *pa)
 	free_EncryptedData(&enc_data);
 
 	if (r->clientdb->hdb_auth_status)
-	    r->clientdb->hdb_auth_status(r->context, r->clientdb, r->client,
-					 HDB_AUTH_WRONG_PASSWORD);
+		(r->clientdb->hdb_auth_status)(r->context, r->clientdb, r->client,
+					       r->from_addr,
+					       r->client_name,
+					       str ? str : "unknown enctype",
+					       HDB_AUTH_WRONG_PASSWORD);
 
 	ret = KRB5KDC_ERR_PREAUTH_FAILED;
 	goto out;
@@ -1783,6 +1799,13 @@ _kdc_as_rep(kdc_request_t r,
 	kdc_log(context, config, 0, "UNKNOWN -- %s: %s", r->client_name, msg);
 	krb5_free_error_message(context, msg);
 	ret = KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN;
+
+	if (config->db[0] && config->db[0]->hdb_auth_status)
+		(config->db[0]->hdb_auth_status)(context, config->db[0], NULL,
+						 from_addr,
+						 r->client_name,
+						 NULL,
+						 HDB_AUTH_CLIENT_UNKNOWN);
 	goto out;
     }
     ret = _kdc_db_fetch(context, config, r->server_princ,
@@ -1930,8 +1953,11 @@ _kdc_as_rep(kdc_request_t r,
     }
 
     if (r->clientdb->hdb_auth_status) {
-	r->clientdb->hdb_auth_status(context, r->clientdb, r->client, 
-				     HDB_AUTH_SUCCESS);
+	r->clientdb->hdb_auth_status(context, r->clientdb, r->client,
+				     r->from_addr,
+				     r->client_name,
+				     NULL,
+				     HDB_AUTH_CORRECT_PASSWORD);
     }
 
     /*
@@ -1945,6 +1971,13 @@ _kdc_as_rep(kdc_request_t r,
     if(ret)
 	goto out;
 
+    if (r->clientdb->hdb_auth_status) {
+	    (r->clientdb->hdb_auth_status)(r->context, r->clientdb, r->client,
+				        r->from_addr,
+				        r->client_name,
+				        NULL,
+				        HDB_AUTHZ_SUCCESS);
+    }
     /*
      * Select the best encryption type for the KDC with out regard to
      * the client since the client never needs to read that data.

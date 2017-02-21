@@ -58,6 +58,7 @@ struct kdc_request_desc {
     krb5_data request;
     KDC_REQ req;
     METHOD_DATA *padata;
+    struct sockaddr *from_addr;
 
     /* out */
 
