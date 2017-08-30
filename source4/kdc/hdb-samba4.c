@@ -83,11 +83,6 @@ static krb5_error_code hdb_samba4_store(krb5_context context, HDB *db, unsigned 
 	return HDB_ERR_DB_INUSE;
 }
 
-static krb5_error_code hdb_samba4_remove(krb5_context context, HDB *db, krb5_const_principal principal)
-{
-	return HDB_ERR_DB_INUSE;
-}
-
 static krb5_error_code hdb_samba4_fetch_kvno(krb5_context context, HDB *db,
 					     krb5_const_principal principal,
 					     unsigned flags,
@@ -571,7 +566,6 @@ NTSTATUS hdb_samba4_create_kdc(struct samba_kdc_base_context *base_ctx,
 	(*db)->hdb_close = hdb_samba4_close;
 	(*db)->hdb_fetch_kvno = hdb_samba4_fetch_kvno;
 	(*db)->hdb_store = hdb_samba4_store;
-	(*db)->hdb_remove = hdb_samba4_remove;
 	(*db)->hdb_firstkey = hdb_samba4_firstkey;
 	(*db)->hdb_nextkey = hdb_samba4_nextkey;
 	(*db)->hdb_lock = hdb_samba4_lock;
