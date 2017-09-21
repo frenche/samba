@@ -33,6 +33,22 @@
 
 #include "kdc_locl.h"
 
+static int
+name_type_ok(krb5_context context,
+             krb5_kdc_configuration *config,
+             krb5_const_principal principal)
+{
+    int nt = krb5_principal_get_type(context, principal);
+
+    if (!krb5_principal_is_krbtgt(context, principal))
+        return 1;
+    if (nt == KRB5_NT_SRV_INST || nt == KRB5_NT_UNKNOWN)
+        return 1;
+    if (config->strict_nametypes == 0)
+        return 1;
+    return 0;
+}
+
 struct timeval _kdc_now;
 
 krb5_error_code
@@ -44,7 +60,7 @@ _kdc_db_fetch(krb5_context context,
 	      HDB **db,
 	      hdb_entry_ex **h)
 {
-    hdb_entry_ex *ent;
+    hdb_entry_ex *ent = NULL;
     krb5_error_code ret = HDB_ERR_NOENTRY;
     int i;
     unsigned kvno = 0;
@@ -53,9 +69,14 @@ _kdc_db_fetch(krb5_context context,
 
     *h = NULL;
 
-    if (kvno_ptr) {
-	    kvno = *kvno_ptr;
-	    flags |= HDB_F_KVNO_SPECIFIED;
+    if (!name_type_ok(context, config, principal))
+        goto out2;
+
+    if (kvno_ptr != NULL && *kvno_ptr != 0) {
+	kvno = *kvno_ptr;
+	flags |= HDB_F_KVNO_SPECIFIED;
+    } else {
+	flags |= HDB_F_ALL_KVNOS;
     }
 
     ent = calloc(1, sizeof (*ent));
@@ -129,6 +150,7 @@ _kdc_db_fetch(krb5_context context,
 	}
     }
 
+out2:
     if (ret == HDB_ERR_NOENTRY) {
 	krb5_set_error_message(context, ret, "no such entry found in hdb");
     }
@@ -164,10 +186,11 @@ _kdc_get_preferred_key(krb5_context context,
     if (config->use_strongest_server_key) {
 	const krb5_enctype *p = krb5_kerberos_enctypes(context);
 
-	for (i = 0; p[i] != ETYPE_NULL; i++) {
-	    if (krb5_enctype_valid(context, p[i]) != 0)
+	for (i = 0; p[i] != (krb5_enctype)ETYPE_NULL; i++) {
+	    if (krb5_enctype_valid(context, p[i]) != 0 &&
+		!_kdc_is_weak_exception(h->entry.principal, p[i]))
 		continue;
-	    ret = hdb_enctype2key(context, &h->entry, p[i], key);
+	    ret = hdb_enctype2key(context, &h->entry, NULL, p[i], key);
 	    if (ret != 0)
 		continue;
 	    if (enctype != NULL)
@@ -178,11 +201,11 @@ _kdc_get_preferred_key(krb5_context context,
 	*key = NULL;
 
 	for (i = 0; i < h->entry.keys.len; i++) {
-	    if (krb5_enctype_valid(context, h->entry.keys.val[i].key.keytype)
-		!= 0)
+	    if (krb5_enctype_valid(context, h->entry.keys.val[i].key.keytype) != 0 &&
+		!_kdc_is_weak_exception(h->entry.principal, h->entry.keys.val[i].key.keytype))
 		continue;
-	    ret = hdb_enctype2key(context, &h->entry,
-		h->entry.keys.val[i].key.keytype, key);
+	    ret = hdb_enctype2key(context, &h->entry, NULL,
+				  h->entry.keys.val[i].key.keytype, key);
 	    if (ret != 0)
 		continue;
 	    if (enctype != NULL)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 - 2007 Kungliga Tekniska Högskolan
+ * Copyright (c) 2006 - 2017 Kungliga Tekniska Högskolan
  * (Royal Institute of Technology, Stockholm, Sweden).
  * All rights reserved.
  *
@@ -405,7 +405,7 @@ krb5_pac_get_types(krb5_context context,
 {
     size_t i;
 
-    *types = calloc(p->pac->numbuffers, sizeof(*types));
+    *types = calloc(p->pac->numbuffers, sizeof(**types));
     if (*types == NULL) {
 	*len = 0;
 	return krb5_enomem(context);
@@ -549,6 +549,8 @@ create_checksum(krb5_context context,
     if (cksumtype == (uint32_t)CKSUMTYPE_HMAC_MD5) {
 	ret = HMAC_MD5_any_checksum(context, key, data, datalen,
 				    KRB5_KU_OTHER_CKSUM, &cksum);
+        if (ret)
+            return ret;
     } else {
 	ret = krb5_crypto_init(context, key, 0, &crypto);
 	if (ret)
@@ -616,7 +618,13 @@ verify_logonname(krb5_context context,
 	uint64_t t1, t2;
 	t1 = unix2nttime(authtime);
 	t2 = ((uint64_t)time2 << 32) | time1;
-	if (t1 != t2) {
+	/*
+	 * When neither the ticket nor the PAC set an explicit authtime,
+	 * both times are zero, but relative to different time scales.
+	 * So we must compare "not set" values without converting to a
+	 * common time reference.
+         */
+	if (t1 != t2 && (t2 != 0 && authtime != 0)) {
 	    krb5_storage_free(sp);
 	    krb5_set_error_message(context, EINVAL, "PAC timestamp mismatch");
 	    return EINVAL;
@@ -743,8 +751,8 @@ build_logon_name(krb5_context context,
 
 	ret = wind_utf8ucs2_length(s, &ucs2_len);
 	if (ret) {
+	    krb5_set_error_message(context, ret, "Principal %s is not valid UTF-8", s);
 	    free(s);
-	    krb5_set_error_message(context, ret, "Failed to count length of UTF-8 string");
 	    return ret;
 	}
 
@@ -755,12 +763,13 @@ build_logon_name(krb5_context context,
 	}
 
 	ret = wind_utf8ucs2(s, ucs2, &ucs2_len);
-	free(s);
 	if (ret) {
 	    free(ucs2);
-	    krb5_set_error_message(context, ret, "Failed to convert string to UCS-2");
+	    krb5_set_error_message(context, ret, "Principal %s is not valid UTF-8", s);
+	    free(s);
 	    return ret;
-	}
+	} else 
+	    free(s);
 
 	s2_len = (ucs2_len + 1) * 2;
 	s2 = malloc(s2_len);
@@ -859,14 +868,13 @@ krb5_pac_verify(krb5_context context,
     {
 	krb5_data *copy;
 
+	if (pac->server_checksum->buffersize < 4 ||
+            pac->privsvr_checksum->buffersize < 4)
+	    return EINVAL;
+
 	ret = krb5_copy_data(context, &pac->data, &copy);
 	if (ret)
 	    return ret;
-
-	if (pac->server_checksum->buffersize < 4)
-	    return EINVAL;
-	if (pac->privsvr_checksum->buffersize < 4)
-	    return EINVAL;
 
 	memset((char *)copy->data + pac->server_checksum->offset_lo + 4,
 	       0,
@@ -917,7 +925,7 @@ fill_zeros(krb5_context context, krb5_storage *sp, size_t len)
 	if (l > sizeof(zeros))
 	    l = sizeof(zeros);
 	sret = krb5_storage_write(sp, zeros, l);
-	if (sret <= 0)
+	if (sret != l)
 	    return krb5_enomem(context);
 
 	len -= sret;
@@ -958,7 +966,7 @@ pac_checksum(krb5_context context,
     return 0;
 }
 
-krb5_error_code
+KRB5_LIB_FUNCTION krb5_error_code KRB5_LIB_CALL
 _krb5_pac_sign(krb5_context context,
 	       krb5_pac p,
 	       time_t authtime,

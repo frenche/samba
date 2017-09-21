@@ -75,12 +75,12 @@ typedef krb5_error_code
 (*krb5plugin_windc_client_access)(
 	void *, krb5_context,
 	krb5_kdc_configuration *config,
-	hdb_entry_ex *, const char *,
-	hdb_entry_ex *, const char *,
-	KDC_REQ *, krb5_data *);
+	hdb_entry_ex *, const char *, 
+	hdb_entry_ex *, const char *, 
+	KDC_REQ *, METHOD_DATA *);
 
 
-#define KRB5_WINDC_PLUGIN_MINOR			6
+#define KRB5_WINDC_PLUGIN_MINOR			7
 #define KRB5_WINDC_PLUGING_MINOR KRB5_WINDC_PLUGIN_MINOR
 
 typedef struct krb5plugin_windc_ftable {

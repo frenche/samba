@@ -47,12 +47,12 @@
 KRB5_LIB_FUNCTION void KRB5_LIB_CALL
 krb5_clear_error_message(krb5_context context)
 {
-    HEIMDAL_MUTEX_lock(context->mutex);
+    HEIMDAL_MUTEX_lock(&context->mutex);
     if (context->error_string)
 	free(context->error_string);
     context->error_code = 0;
     context->error_string = NULL;
-    HEIMDAL_MUTEX_unlock(context->mutex);
+    HEIMDAL_MUTEX_unlock(&context->mutex);
 }
 
 /**
@@ -72,7 +72,7 @@ krb5_clear_error_message(krb5_context context)
 KRB5_LIB_FUNCTION void KRB5_LIB_CALL
 krb5_set_error_message(krb5_context context, krb5_error_code ret,
 		       const char *fmt, ...)
-    __attribute__ ((format (printf, 3, 4)))
+    __attribute__ ((__format__ (__printf__, 3, 4)))
 {
     va_list ap;
 
@@ -98,14 +98,14 @@ krb5_set_error_message(krb5_context context, krb5_error_code ret,
 KRB5_LIB_FUNCTION void KRB5_LIB_CALL
 krb5_vset_error_message (krb5_context context, krb5_error_code ret,
 			 const char *fmt, va_list args)
-    __attribute__ ((format (printf, 3, 0)))
+    __attribute__ ((__format__ (__printf__, 3, 0)))
 {
     int r;
 
     if (context == NULL)
 	return;
 
-    HEIMDAL_MUTEX_lock(context->mutex);
+    HEIMDAL_MUTEX_lock(&context->mutex);
     if (context->error_string) {
 	free(context->error_string);
 	context->error_string = NULL;
@@ -114,7 +114,9 @@ krb5_vset_error_message (krb5_context context, krb5_error_code ret,
     r = vasprintf(&context->error_string, fmt, args);
     if (r < 0)
 	context->error_string = NULL;
-    HEIMDAL_MUTEX_unlock(context->mutex);
+    HEIMDAL_MUTEX_unlock(&context->mutex);
+    if (context->error_string)
+	_krb5_debug(context, 100, "error message: %s: %d", context->error_string, ret);
 }
 
 /**
@@ -134,7 +136,7 @@ krb5_vset_error_message (krb5_context context, krb5_error_code ret,
 KRB5_LIB_FUNCTION void KRB5_LIB_CALL
 krb5_prepend_error_message(krb5_context context, krb5_error_code ret,
 			   const char *fmt, ...)
-    __attribute__ ((format (printf, 3, 4)))
+    __attribute__ ((__format__ (__printf__, 3, 4)))
 {
     va_list ap;
 
@@ -159,20 +161,20 @@ krb5_prepend_error_message(krb5_context context, krb5_error_code ret,
 KRB5_LIB_FUNCTION void KRB5_LIB_CALL
 krb5_vprepend_error_message(krb5_context context, krb5_error_code ret,
 			    const char *fmt, va_list args)
-    __attribute__ ((format (printf, 3, 0)))
+    __attribute__ ((__format__ (__printf__, 3, 0)))
 {
     char *str = NULL, *str2 = NULL;
 
     if (context == NULL)
 	return;
 
-    HEIMDAL_MUTEX_lock(context->mutex);
+    HEIMDAL_MUTEX_lock(&context->mutex);
     if (context->error_code != ret) {
-	HEIMDAL_MUTEX_unlock(context->mutex);
+	HEIMDAL_MUTEX_unlock(&context->mutex);
 	return;
     }
     if (vasprintf(&str, fmt, args) < 0 || str == NULL) {
-	HEIMDAL_MUTEX_unlock(context->mutex);
+	HEIMDAL_MUTEX_unlock(&context->mutex);
 	return;
     }
     if (context->error_string) {
@@ -187,42 +189,7 @@ krb5_vprepend_error_message(krb5_context context, krb5_error_code ret,
 	free(str);
     } else
 	context->error_string = str;
-    HEIMDAL_MUTEX_unlock(context->mutex);
-}
-
-
-/**
- * Return the error message in context. On error or no error string,
- * the function returns NULL.
- *
- * @param context Kerberos 5 context
- *
- * @return an error string, needs to be freed with
- * krb5_free_error_message(). The functions return NULL on error.
- *
- * @ingroup krb5_error
- */
-
-KRB5_LIB_FUNCTION char * KRB5_LIB_CALL
-krb5_get_error_string(krb5_context context)
-{
-    char *ret = NULL;
-
-    HEIMDAL_MUTEX_lock(context->mutex);
-    if (context->error_string)
-	ret = strdup(context->error_string);
-    HEIMDAL_MUTEX_unlock(context->mutex);
-    return ret;
-}
-
-KRB5_LIB_FUNCTION krb5_boolean KRB5_LIB_CALL
-krb5_have_error_string(krb5_context context)
-{
-    char *str;
-    HEIMDAL_MUTEX_lock(context->mutex);
-    str = context->error_string;
-    HEIMDAL_MUTEX_unlock(context->mutex);
-    return str != NULL;
+    HEIMDAL_MUTEX_unlock(&context->mutex);
 }
 
 /**
@@ -241,29 +208,53 @@ krb5_have_error_string(krb5_context context)
 KRB5_LIB_FUNCTION const char * KRB5_LIB_CALL
 krb5_get_error_message(krb5_context context, krb5_error_code code)
 {
-    char *str;
-
-    HEIMDAL_MUTEX_lock(context->mutex);
-    if (context->error_string &&
-	(code == context->error_code || context->error_code == 0))
-    {
-	str = strdup(context->error_string);
-	if (str) {
-	    HEIMDAL_MUTEX_unlock(context->mutex);
-	    return str;
-	}
-    }
-    HEIMDAL_MUTEX_unlock(context->mutex);
+    char *str = NULL;
+    const char *cstr = NULL;
+    char buf[128];
+    int free_context = 0;
 
     if (code == 0)
 	return strdup("Success");
+
+    /*
+     * The MIT version of this function ignores the krb5_context
+     * and several widely deployed applications call krb5_get_error_message()
+     * with a NULL context in order to translate an error code as a
+     * replacement for error_message().  Another reason a NULL context
+     * might be provided is if the krb5_init_context() call itself
+     * failed.
+     */
+    if (context)
     {
-	const char *msg;
-	char buf[128];
-	msg = com_right_r(context->et_list, code, buf, sizeof(buf));
-	if (msg)
-	    return strdup(msg);
+	HEIMDAL_MUTEX_lock(&context->mutex);
+        if (context->error_string &&
+            (code == context->error_code || context->error_code == 0))
+        {
+            str = strdup(context->error_string);
+        }
+	HEIMDAL_MUTEX_unlock(&context->mutex);
+
+        if (str)
+            return str;
     }
+    else
+    {
+        if (krb5_init_context(&context) == 0)
+            free_context = 1;
+    }
+
+    if (context)
+        cstr = com_right_r(context->et_list, code, buf, sizeof(buf));
+
+    if (free_context)
+        krb5_free_context(context);
+
+    if (cstr)
+        return strdup(cstr);
+
+    cstr = error_message(code);
+    if (cstr)
+        return strdup(cstr);
 
     if (asprintf(&str, "<unknown error: %d>", (int)code) == -1 || str == NULL)
 	return NULL;
@@ -305,7 +296,7 @@ krb5_free_error_message(krb5_context context, const char *msg)
 
 KRB5_LIB_FUNCTION const char* KRB5_LIB_CALL
 krb5_get_err_text(krb5_context context, krb5_error_code code)
-    KRB5_DEPRECATED_FUNCTION("Use X instead")
+    KRB5_DEPRECATED_FUNCTION("Use krb5_get_error_message instead")
 {
     const char *p = NULL;
     if(context != NULL)
@@ -316,3 +307,4 @@ krb5_get_err_text(krb5_context context, krb5_error_code code)
 	p = "Unknown error";
     return p;
 }
+

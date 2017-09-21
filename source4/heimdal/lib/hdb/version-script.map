@@ -5,6 +5,7 @@ HEIMDAL_HDB_1.0 {
 		encode_hdb_keyset;
 		hdb_add_master_key;
 		hdb_add_current_keys_to_history;
+		hdb_change_kvno;
 		hdb_check_db_format;
 		hdb_clear_extension;
 		hdb_clear_master_key;
@@ -43,21 +44,25 @@ HEIMDAL_HDB_1.0 {
 		hdb_free_master_key;
 		hdb_generate_key_set;
 		hdb_generate_key_set_password;
+		hdb_generate_key_set_password_with_ks_tuple;
 		hdb_get_dbinfo;
 		hdb_init_db;
 		hdb_key2principal;
+		hdb_kvno2keys;
 		hdb_list_builtin;
 		hdb_lock;
 		hdb_next_enctype2key;
 		hdb_principal2key;
 		hdb_print_entry;
 		hdb_process_master_key;
+		hdb_prune_keys;
 		hdb_read_master_key;
 		hdb_replace_extension;
 		hdb_seal_key;
 		hdb_seal_key_mkey;
 		hdb_seal_keys;
 		hdb_seal_keys_mkey;
+                hdb_set_last_modified_by;
 		hdb_set_master_key;
 		hdb_set_master_keyfile;
 		hdb_unlock;
@@ -72,7 +77,12 @@ HEIMDAL_HDB_1.0 {
 		hdb_interface_version;
 		initialize_hdb_error_table_r;
 
+                # MIT KDB related entries
+                _hdb_mdb_value2entry;
+                _hdb_mit_dump2mitdb_entry;
+
 		hdb_kt_ops;
+		hdb_get_kt_ops;
 
 		# some random bits needed for libkadm
 		add_HDB_Ext_KeySet;
@@ -112,7 +122,7 @@ HEIMDAL_HDB_1.0 {
 		length_Keys;
 		remove_Keys;
 		add_Keys;
-		add_HDB_Ext_Keyset;
+		add_HDB_Ext_KeySet;
 
 	local:
 		*;

@@ -36,6 +36,8 @@
 #ifndef __HDB_H__
 #define __HDB_H__
 
+#include <stdio.h>
+
 #include <krb5.h>
 
 #include <hdb_err.h>
@@ -63,19 +65,18 @@ enum hdb_lockop{ HDB_RLOCK, HDB_WLOCK };
 #define HDB_F_ALL_KVNOS		2048	/* we want all the keys, live or not */
 #define HDB_F_FOR_AS_REQ	4096	/* fetch is for a AS REQ */
 #define HDB_F_FOR_TGS_REQ	8192	/* fetch is for a TGS REQ */
+#define HDB_F_PRECHECK		16384	/* check that the operation would succeed */
 
 /* hdb_capability_flags */
 #define HDB_CAP_F_HANDLE_ENTERPRISE_PRINCIPAL 1
 #define HDB_CAP_F_HANDLE_PASSWORDS	2
 #define HDB_CAP_F_PASSWORD_UPDATE_KEYS	4
+#define HDB_CAP_F_SHARED_DIRECTORY      8
 
 /* auth status values */
-#define HDB_AUTHZ_SUCCESS		0
+#define HDB_AUTH_SUCCESS		0
 #define HDB_AUTH_WRONG_PASSWORD		1
 #define HDB_AUTH_INVALID_SIGNATURE	2
-#define HDB_AUTH_CORRECT_PASSWORD	3
-#define HDB_AUTH_PKINIT_SUCCESS 	4
-#define HDB_AUTH_CLIENT_UNKNOWN		5
 
 /* key usage for master key */
 #define HDB_KU_MKEY	0x484442
@@ -103,7 +104,7 @@ typedef struct hdb_entry_ex {
  * query the backend database when talking about principals.
  */
 
-typedef struct HDB{
+typedef struct HDB {
     void *hdb_db;
     void *hdb_dbc; /** don't use, only for DB3 */
     char *hdb_name;
@@ -155,7 +156,7 @@ typedef struct HDB{
      * Remove an entry from the database.
      */
     krb5_error_code (*hdb_remove)(krb5_context, struct HDB*,
-				  krb5_const_principal);
+				  unsigned, krb5_const_principal);
     /**
      * As part of iteration, fetch one entry
      */
@@ -187,25 +188,33 @@ typedef struct HDB{
     /**
      * Get an hdb_entry from a classical DB backend
      *
-     * If the database is a classical DB (ie BDB, NDBM, GDBM, etc)
-     * backend, this function will take a principal key (krb5_data)
-     * and return all data related to principal in the return
-     * krb5_data. The returned encoded entry is of type hdb_entry or
-     * hdb_entry_alias.
+     * This function takes a principal key (krb5_data) and returns all
+     * data related to principal in the return krb5_data. The returned
+     * encoded entry is of type hdb_entry or hdb_entry_alias.
      */
     krb5_error_code (*hdb__get)(krb5_context, struct HDB*,
 				krb5_data, krb5_data*);
     /**
      * Store an hdb_entry from a classical DB backend
      *
-     * Same discussion as in @ref HDB::hdb__get
+     * This function takes a principal key (krb5_data) and encoded
+     * hdb_entry or hdb_entry_alias as the data to store.
+     *
+     * For a file-based DB, this must synchronize to disk when done.
+     * This is sub-optimal for kadm5_s_rename_principal(), and for
+     * kadm5_s_modify_principal() when using principal aliases; to
+     * improve this so that only one fsync() need be done
+     * per-transaction will require HDB API extensions.
      */
     krb5_error_code (*hdb__put)(krb5_context, struct HDB*, int,
 				krb5_data, krb5_data);
     /**
      * Delete and hdb_entry from a classical DB backend
      *
-     * Same discussion as in @ref HDB::hdb__get
+     * This function takes a principal key (krb5_data) naming the record
+     * to delete.
+     *
+     * Same discussion as in @ref HDB::hdb__put
      */
     krb5_error_code (*hdb__del)(krb5_context, struct HDB*, krb5_data);
     /**
@@ -247,11 +256,7 @@ typedef struct HDB{
      * In case the entry is locked out, the backend should set the
      * hdb_entry.flags.locked-out flag.
      */
-    krb5_error_code (*hdb_auth_status)(krb5_context, struct HDB *,
-				       hdb_entry_ex *, struct sockaddr *from_addr,
-				       const char *original_client_name,
-				       const char *auth_type,
-				       int);
+    krb5_error_code (*hdb_auth_status)(krb5_context, struct HDB *, hdb_entry_ex *, int);
     /**
      * Check if delegation is allowed.
      */
@@ -268,23 +273,31 @@ typedef struct HDB{
     krb5_error_code (*hdb_check_s4u2self)(krb5_context, struct HDB *, hdb_entry_ex *, krb5_const_principal);
 }HDB;
 
-#define HDB_INTERFACE_VERSION	7
+#define HDB_INTERFACE_VERSION	9
 
-struct hdb_so_method {
-    int version;
+struct hdb_method {
+    int			version;
+    krb5_error_code	(*init)(krb5_context, void **);
+    void		(*fini)(void *);
     const char *prefix;
     krb5_error_code (*create)(krb5_context, HDB **, const char *filename);
+};
+
+/* dump entry format, for hdb_print_entry() */
+typedef enum hdb_dump_format {
+    HDB_DUMP_HEIMDAL = 0,
+    HDB_DUMP_MIT = 1,
+} hdb_dump_format_t;
+
+struct hdb_print_entry_arg {
+    FILE *out;
+    hdb_dump_format_t fmt;
 };
 
 typedef krb5_error_code (*hdb_foreach_func_t)(krb5_context, HDB*,
 					      hdb_entry_ex*, void*);
 extern krb5_kt_ops hdb_kt_ops;
-
-struct hdb_method {
-    int interface_version;
-    const char *prefix;
-    krb5_error_code (*create)(krb5_context, HDB **, const char *filename);
-};
+extern krb5_kt_ops hdb_get_kt_ops;
 
 extern const int hdb_interface_version;
 
