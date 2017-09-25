@@ -170,11 +170,7 @@ testit "kinit with user password (after kpasswd change)" $samba4kinit $enctype -
 NEWUSERPASS=testPaSS@78%
 echo $NEWUSERPASS > $PREFIX/tmpuserpassfile
 
-<<<<<<< 02e8de501eee35c825c91bc5457f23de0a53db63:testprogs/blackbox/test_kinit_heimdal.sh
-test_smbclient "Test login with user kerberos ccache" 'ls' "$unc" -k yes || failed=`expr $failed + 1`
-=======
-test_smbclient "Test login with user kerberos ccache (after kpasswd change)" 'ls' -k yes || failed=`expr $failed + 1`
->>>>>>> selftest: Improve test names in kinit test for improved debugging:testprogs/blackbox/test_kinit.sh
+test_smbclient "Test login with user kerberos ccache (after kpasswd change)" 'ls' "$unc" -k yes || failed=`expr $failed + 1`
 
 cat > $PREFIX/tmpkpasswdscript <<EOF
 expect New password
@@ -189,11 +185,7 @@ testit "set user password with kpasswd" $texpect $PREFIX/tmpkpasswdscript $samba
 rm -f $KRB5CCNAME_PATH
 testit "kinit with user password (after kpasswd set)" $samba4kinit $enctype --password-file=$PREFIX/tmpuserpassfile --request-pac nettestuser@$REALM   || failed=`expr $failed + 1`
 
-<<<<<<< 02e8de501eee35c825c91bc5457f23de0a53db63:testprogs/blackbox/test_kinit_heimdal.sh
-test_smbclient "Test login with user kerberos ccache" 'ls' "$unc" -k yes || failed=`expr $failed + 1`
-=======
-test_smbclient "Test login with user kerberos ccache (after kpasswd set)" 'ls' -k yes || failed=`expr $failed + 1`
->>>>>>> selftest: Improve test names in kinit test for improved debugging:testprogs/blackbox/test_kinit.sh
+test_smbclient "Test login with user kerberos ccache (after kpasswd set)" 'ls' "$unc" -k yes || failed=`expr $failed + 1`
 
 NEWUSERPASS=testPaSS@910%
 echo $NEWUSERPASS > $PREFIX/tmpuserpassfile
@@ -210,11 +202,7 @@ testit "set user password with kpasswd and servicePrincipalName" $texpect $PREFI
 
 testit "kinit with user password (after set with kpasswd and spn)" $samba4kinit $enctype --password-file=$PREFIX/tmpuserpassfile --request-pac nettestuser@$REALM   || failed=`expr $failed + 1`
 
-<<<<<<< 02e8de501eee35c825c91bc5457f23de0a53db63:testprogs/blackbox/test_kinit_heimdal.sh
-test_smbclient "Test login with user kerberos ccache" 'ls' "$unc" -k yes || failed=`expr $failed + 1`
-=======
-test_smbclient "Test login with user kerberos ccache (after set with kpasswd and spn)" 'ls' -k yes || failed=`expr $failed + 1`
->>>>>>> selftest: Improve test names in kinit test for improved debugging:testprogs/blackbox/test_kinit.sh
+test_smbclient "Test login with user kerberos ccache (after set with kpasswd and spn)" 'ls' "$unc" -k yes || failed=`expr $failed + 1`
 
 cat > $PREFIX/tmpldbmodify <<EOF
 dn: cn=nettestuser,cn=users,$BASEDN
