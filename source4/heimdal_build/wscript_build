@@ -279,10 +279,10 @@ def HEIMDAL_SUBSYSTEM(modname, source,
 
     bld.set_group(group)
 
-    # If we found the -Wno-error=discarded-qualifiers or cast-qual
+    # If we found the -Wno-error=discarded-qualifiers and cast-qual
     # declarations then build without allowing warnings, otherwise
     # permit them
-    if bld.env.HEIMDAL_PICKY_CFLAGS != []:
+    if len(bld.env.HEIMDAL_PICKY_CFLAGS) == 2:
         samba_cflags = CURRENT_CFLAGS(bld, modname, cflags) + \
                        bld.env.HEIMDAL_PICKY_CFLAGS
     else:
