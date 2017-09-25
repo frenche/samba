@@ -129,7 +129,7 @@ def HEIMDAL_ASN1(name, source,
     t = bld(features       = 'c',
             source         = cfile,
             target         = name,
-            samba_cflags   = CURRENT_CFLAGS(bld, name, '', allow_warnings=True),
+            samba_cflags   = CURRENT_CFLAGS(bld, name, ''),
             depends_on     = '',
             samba_deps     = to_list('roken replace'),
             samba_includes = includes + ["/usr/include/heimdal"],
@@ -279,11 +279,21 @@ def HEIMDAL_SUBSYSTEM(modname, source,
 
     bld.set_group(group)
 
+    # If we found the -Wno-error=discarded-qualifiers or cast-qual
+    # declarations then build without allowing warnings, otherwise
+    # permit them
+    if bld.env.HEIMDAL_PICKY_CFLAGS != []:
+        samba_cflags = CURRENT_CFLAGS(bld, modname, cflags) + \
+                       bld.env.HEIMDAL_PICKY_CFLAGS
+    else:
+        samba_cflags = CURRENT_CFLAGS(bld, modname, cflags,
+                                      allow_warnings=True)
+        
     return bld(
         features       = 'c',
         source         = source,
         target         = modname,
-        samba_cflags   = CURRENT_CFLAGS(bld, modname, cflags, allow_warnings=True),
+        samba_cflags   = samba_cflags,
         depends_on     = '',
         samba_deps     = to_list(deps),
         samba_includes = includes,

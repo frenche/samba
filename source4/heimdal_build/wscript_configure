@@ -65,6 +65,14 @@ conf.CHECK_FUNCS('dirfd', headers='dirent.h')
 conf.CHECK_DECLS('dirfd', reverse=True, headers='dirent.h')
 conf.CHECK_STRUCTURE_MEMBER('DIR', 'dd_fd', define='HAVE_DIR_DD_FD',  headers='dirent.h')
 
+# Heimdal is not const-clean yet
+conf.ADD_NAMED_CFLAGS('HEIMDAL_PICKY_CFLAGS',
+                      '-Wno-error=discarded-qualifiers',
+                      testflags=True)
+conf.ADD_NAMED_CFLAGS('HEIMDAL_PICKY_CFLAGS',
+                      '-Wno-error=cast-qual',
+                      testflags=True)
+
 conf.DEFINE('SAMBA4_USES_HEIMDAL', 1)
 
 # setup the right defines for a in-tree heimdal build
