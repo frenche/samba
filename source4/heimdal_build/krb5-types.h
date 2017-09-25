@@ -30,7 +30,7 @@ typedef ssize_t krb5_ssize_t;
 #endif
 
 #ifndef HEIMDAL_NORETURN_ATTRIBUTE
-#ifdef HAVE_ATTRIBUTE_NORETURN
+#ifdef HAVE___ATTRIBUTE__
 #define HEIMDAL_NORETURN_ATTRIBUTE __attribute__((noreturn))
 #else
 #define HEIMDAL_NORETURN_ATTRIBUTE
@@ -38,7 +38,7 @@ typedef ssize_t krb5_ssize_t;
 #endif
 
 #ifndef HEIMDAL_UNUSED_ATTRIBUTE
-#ifdef HAVE_ATTRIBUTE_UNUSED
+#ifdef HAVE___ATTRIBUTE__
 #define HEIMDAL_UNUSED_ATTRIBUTE __attribute__((unused))
 #else
 #define HEIMDAL_UNUSED_ATTRIBUTE
@@ -46,7 +46,7 @@ typedef ssize_t krb5_ssize_t;
 #endif
 
 #ifndef HEIMDAL_WARN_UNUSED_RESULT_ATTRIBUTE
-#ifdef HAVE_WARN_UNUSED_RESULT
+#ifdef HAVE___ATTRIBUTE__
 #define HEIMDAL_WARN_UNUSED_RESULT_ATTRIBUTE _WARN_UNUSED_RESULT_
 #else
 #define HEIMDAL_WARN_UNUSED_RESULT_ATTRIBUTE
