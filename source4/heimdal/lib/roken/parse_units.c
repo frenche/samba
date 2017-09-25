@@ -334,6 +334,9 @@ print_flags_table (const struct units *units, FILE *f)
 #undef unparse_flags
 #undef print_flags_table
 
+/* Now include prototypes again, this time without the _rk prefix */
+#include "parse_units_proto.h"
+
 ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
 parse_units(const char *s, const struct units *units,
 	     const char *def_unit)

@@ -79,6 +79,9 @@ print_time_table (FILE *f)
 #undef unparse_time_approx
 #undef print_time_table
 
+/* Now include prototypes again, this time without the _rk prefix */
+#include "parse_time_proto.h"
+
 ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
 parse_time(const char *s, const char *def_unit)
 {

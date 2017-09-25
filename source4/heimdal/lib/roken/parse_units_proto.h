@@ -33,35 +33,31 @@
 
 /* $Id$ */
 
-#ifndef __PARSE_UNITS_H__
-#define __PARSE_UNITS_H__
+/*
+ * This file to allow parse_units.c to include a copy
+ * of the prototypes with and without a rk_ prefix
+ */
 
-#include <stdio.h>
-#include <stddef.h>
+ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
+parse_units (const char *s, const struct units *units,
+	     const char *def_unit);
 
-#ifndef ROKEN_LIB_FUNCTION
-#ifdef _WIN32
-#define ROKEN_LIB_FUNCTION
-#define ROKEN_LIB_CALL     __cdecl
-#else
-#define ROKEN_LIB_FUNCTION
-#define ROKEN_LIB_CALL
-#endif
-#endif
+ROKEN_LIB_FUNCTION void ROKEN_LIB_CALL
+print_units_table (const struct units *units, FILE *f);
 
-struct units {
-    const char *name;
-    unsigned mult;
-};
+ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
+parse_flags (const char *s, const struct units *units,
+	     int orig);
 
-#define parse_units rk_parse_units
-#define unparse_units rk_unparse_units
-#define unparse_units_approx rk_unparse_units_approx
-#define print_units_table rk_print_units_table
-#define parse_flags rk_parse_flags
-#define unparse_flags rk_unparse_flags
-#define print_flags_table rk_print_flags_table
+ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
+unparse_units (int num, const struct units *units, char *s, size_t len);
 
-#include "parse_units_proto.h"
+ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
+unparse_units_approx (int num, const struct units *units, char *s,
+		      size_t len);
 
-#endif /* __PARSE_UNITS_H__ */
+ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
+unparse_flags (int num, const struct units *units, char *s, size_t len);
+
+ROKEN_LIB_FUNCTION void ROKEN_LIB_CALL
+print_flags_table (const struct units *units, FILE *f);

@@ -33,35 +33,19 @@
 
 /* $Id$ */
 
-#ifndef __PARSE_UNITS_H__
-#define __PARSE_UNITS_H__
+/*
+ * This file to allow parse_time.c to include a copy
+ * of the prototypes with and without a rk_ prefix
+ */
+ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
+parse_time (const char *s, const char *def_unit);
 
-#include <stdio.h>
-#include <stddef.h>
+ROKEN_LIB_FUNCTION size_t ROKEN_LIB_CALL
+unparse_time (int t, char *s, size_t len);
 
-#ifndef ROKEN_LIB_FUNCTION
-#ifdef _WIN32
-#define ROKEN_LIB_FUNCTION
-#define ROKEN_LIB_CALL     __cdecl
-#else
-#define ROKEN_LIB_FUNCTION
-#define ROKEN_LIB_CALL
-#endif
-#endif
+ROKEN_LIB_FUNCTION size_t ROKEN_LIB_CALL
+unparse_time_approx (int t, char *s, size_t len);
 
-struct units {
-    const char *name;
-    unsigned mult;
-};
+ROKEN_LIB_FUNCTION void ROKEN_LIB_CALL
+print_time_table (FILE *f);
 
-#define parse_units rk_parse_units
-#define unparse_units rk_unparse_units
-#define unparse_units_approx rk_unparse_units_approx
-#define print_units_table rk_print_units_table
-#define parse_flags rk_parse_flags
-#define unparse_flags rk_unparse_flags
-#define print_flags_table rk_print_flags_table
-
-#include "parse_units_proto.h"
-
-#endif /* __PARSE_UNITS_H__ */
