@@ -514,7 +514,7 @@ krb5_error_code smb_krb5_set_send_to_kdc_func(struct smb_krb5_context *smb_krb5_
 {
 	intptr_t key_ptr = (intptr_t)smb_krb5_context->krb5_context;
 	TDB_DATA key = make_tdb_data((uint8_t *)&key_ptr, sizeof(key_ptr));
-	intptr_t value_ptr = NULL;
+	intptr_t value_ptr = (intptr_t)NULL;
 	TDB_DATA value = make_tdb_data(NULL, 0);
 	struct db_record *rec = NULL;
 	struct smb_krb5_send_to_kdc_state *state = NULL;
