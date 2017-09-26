@@ -110,6 +110,21 @@ _gsskrb5_canon_name(OM_uint32 *minor_status, krb5_context context,
 				      service,
 				      KRB5_NT_SRV_HST,
 				      out);
+	if (ret == 0) {
+	    const char *in_realm = krb5_principal_get_realm(context,
+							    p);
+	    const char *out_realm = krb5_principal_get_realm(context,
+							     *out);
+
+	    /* 
+	     * Avoid loss of information, check for the "referral
+	     * realm" and set back what was specified.
+	     */
+	    if (out_realm != NULL && out_realm[0] == '\0') {
+		ret = krb5_principal_set_realm(context, *out, in_realm);
+	    }
+	}
+		
     } else {
 	ret = krb5_copy_principal(context, p, out);
     }
