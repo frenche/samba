@@ -1613,8 +1613,12 @@ parse_name_canon_rules(krb5_context context, char **rulestrs,
     }
 
     if (r[0].type == KRB5_NCRT_BOGUS) {
-        /* No rules, or no valid rules */
-        r[0].type = KRB5_NCRT_NSS;
+	/* No rules, or no valid rules */
+	if (context->flags & KRB5_CTX_F_DNS_CANONICALIZE_HOSTNAME) {
+	    r[0].type = KRB5_NCRT_NSS;
+	} else {
+	    r[0].type = KRB5_NCRT_AS_IS;
+	}
     }
 
     *rules = r;
