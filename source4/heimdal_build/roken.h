@@ -123,6 +123,10 @@
 #define HAVE_SETEUID
 #endif
 
+#ifndef POSIX_GETPWNAM_R
+#define POSIX_GETPWNAM_R
+#endif
+
 #ifndef HAVE_DIRFD
 #ifdef HAVE_DIR_DD_FD
 #define dirfd(x) ((x)->dd_fd)
