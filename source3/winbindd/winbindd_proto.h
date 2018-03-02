@@ -421,6 +421,8 @@ enum winbindd_result winbindd_dual_pam_logoff(struct winbindd_domain *domain,
 					      struct winbindd_cli_state *state) ;
 enum winbindd_result winbindd_dual_pam_chng_pswd_auth_crap(struct winbindd_domain *domainSt, struct winbindd_cli_state *state);
 NTSTATUS winbindd_pam_auth_pac_verify(struct winbindd_cli_state *state,
+				      uint8_t *data,
+				      size_t length,
 				      bool *p_is_trusted,
 				      uint16_t *p_validation_level,
 				      union netr_Validation **p_validation);

@@ -2894,6 +2894,8 @@ out:
 }
 
 NTSTATUS winbindd_pam_auth_pac_verify(struct winbindd_cli_state *state,
+				      uint8_t *data,
+				      size_t length,
 				      bool *p_is_trusted,
 				      uint16_t *p_validation_level,
 				      union netr_Validation **p_validation)
@@ -2915,7 +2917,7 @@ NTSTATUS winbindd_pam_auth_pac_verify(struct winbindd_cli_state *state,
 	*p_validation_level = 0;
 	*p_validation = NULL;
 
-	pac_blob = data_blob_const(req->extra_data.data, req->extra_len);
+	pac_blob = data_blob_const(data, length);
 	result = extract_pac_vrfy_sigs(state->mem_ctx, pac_blob, &pac_data);
 	if (NT_STATUS_IS_OK(result)) {
 		is_trusted = true;
@@ -3017,6 +3019,8 @@ NTSTATUS winbindd_pam_auth_pac_verify(struct winbindd_cli_state *state,
 }
 #else /* HAVE_KRB5 */
 NTSTATUS winbindd_pam_auth_pac_verify(struct winbindd_cli_state *state,
+				      uint8_t *data,
+				      size_t length,
 				      bool *p_is_trusted,
 				      uint16_t *p_validation_level,
 				      union netr_Validation **p_validation);

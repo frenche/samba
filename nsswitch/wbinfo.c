@@ -1756,6 +1756,73 @@ static bool wbinfo_auth(char *username)
 	return WBC_ERROR_IS_OK(wbc_status);
 }
 
+/* Impersonate a user and print its SIDs */
+
+static bool wbinfo_impersonate(char *username)
+{
+	wbcErr wbc_status = WBC_ERR_UNKNOWN_FAILURE;
+	struct wbcAuthUserParams params;
+	struct wbcAuthUserInfo *info = NULL;
+	struct wbcAuthErrorInfo *err = NULL;
+	fstring name_user;
+	fstring name_domain;
+	TALLOC_CTX *frame = talloc_tos();
+
+	parse_wbinfo_domain_user(username, name_domain, name_user);
+
+	params.account_name	= name_user;
+	params.domain_name	= name_domain;
+	params.workstation_name	= NULL;
+
+	params.flags		= 0;
+	params.level		= WBC_AUTH_USER_LEVEL_IMPERSONATE;
+
+	params.password.pac.data = NULL;
+	params.password.pac.length= 0;
+
+	wbc_status = wbcAuthenticateUserEx(&params, &info, &err);
+
+	/* Display response */
+
+	d_printf("Impersonate user %s has %s\n", name_user,
+		 WBC_ERROR_IS_OK(wbc_status) ? "succeeded" : "failed");
+
+	if (wbc_status == WBC_ERR_AUTH_ERROR) {
+		d_fprintf(stderr,
+			 "wbcAuthenticateUserEx(%s%c%s): error code was "
+			  "%s (0x%x, authoritative=%"PRIu8")\n"
+			 "error message was: %s\n",
+			 name_domain,
+			 winbind_separator(),
+			 name_user,
+			 err->nt_string,
+			 err->nt_status,
+			 err->authoritative,
+			 err->display_string);
+		wbcFreeMemory(err);
+	}
+	else if (WBC_ERROR_IS_OK(wbc_status))
+	{
+		d_printf("User account name: %s (UPN: %s)\n",
+			 info->account_name, info->user_principal);
+
+		for(unsigned i = 0; i < info->num_sids; ++i) {
+			char *sid_str = NULL;
+			wbcErr ret = wbcSidToString(&info->sids[i].sid, &sid_str);
+			if (!WBC_ERROR_IS_OK(ret)) {
+				d_fprintf(stderr, "wbcSidToString failed!\n");
+			}
+			else {
+				d_fprintf(stderr, "%s\n", sid_str);
+				wbcFreeMemory(sid_str);
+			}
+		}
+		wbcFreeMemory(info);
+	}
+
+	return WBC_ERROR_IS_OK(wbc_status);
+}
+
 /* Authenticate a user with a challenge/response */
 
 static bool wbinfo_auth_crap(char *username, bool use_ntlmv2, bool use_lanman)
@@ -2349,6 +2416,7 @@ int main(int argc, const char **argv, char **envp)
 		{ "sid-aliases", 0, POPT_ARG_STRING, &string_arg, OPT_SIDALIASES, "Get sid aliases", "SID" },
 		{ "user-sids", 0, POPT_ARG_STRING, &string_arg, OPT_USERSIDS, "Get user group sids for user SID", "SID" },
 		{ "authenticate", 'a', POPT_ARG_STRING, &string_arg, 'a', "authenticate user", "user%password" },
+		{ "impersonate", 'M', POPT_ARG_STRING, &string_arg, 'M', "impersonate a user and print SIDs", "user" },
 		{ "pam-logon", 0, POPT_ARG_STRING, &string_arg, OPT_PAM_LOGON,
 		  "do a pam logon equivalent", "user%password" },
 		{ "logoff", 0, POPT_ARG_NONE, NULL, OPT_LOGOFF,
@@ -2729,6 +2797,15 @@ int main(int argc, const char **argv, char **envp)
 
 				if (got_error)
 					goto done;
+				break;
+			}
+		case 'M': {
+				if (!wbinfo_impersonate(string_arg)) {
+					d_fprintf(stderr,
+						"Could not impersonate user %s\n",
+						string_arg);
+					goto done;
+				}
 				break;
 			}
 		case OPT_PAM_LOGON:

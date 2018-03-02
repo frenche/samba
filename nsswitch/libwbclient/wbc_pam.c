@@ -521,6 +521,17 @@ wbcErr wbcCtxAuthenticateUserEx(struct wbcContext *ctx,
 		request.extra_len = params->password.pac.length;
 		break;
 
+	case WBC_AUTH_USER_LEVEL_IMPERSONATE:
+		cmd = WINBINDD_PAM_AUTH_CRAP;
+		request.flags = WBFLAG_PAM_AUTH_PAC | WBFLAG_PAM_INFO3_TEXT |
+				WBFLAG_PAM_IMPERSONATE;
+
+		strncpy(request.data.auth.user,
+			params->account_name,
+			sizeof(request.data.auth.user)-1);
+
+		break;
+
 	default:
 		break;
 	}

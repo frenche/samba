@@ -253,7 +253,8 @@ struct wbcAuthUserParams {
 		WBC_AUTH_USER_LEVEL_PLAIN = 1,
 		WBC_AUTH_USER_LEVEL_HASH = 2,
 		WBC_AUTH_USER_LEVEL_RESPONSE = 3,
-		WBC_AUTH_USER_LEVEL_PAC = 4
+		WBC_AUTH_USER_LEVEL_PAC = 4,
+		WBC_AUTH_USER_LEVEL_IMPERSONATE = 5
 	} level;
 	union {
 		const char *plaintext;

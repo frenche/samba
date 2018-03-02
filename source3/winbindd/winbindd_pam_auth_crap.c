@@ -19,6 +19,8 @@
 
 #include "includes.h"
 #include "winbindd.h"
+#include "secrets.h"
+#include "libads/kerberos_proto.h"
 #include "rpc_client/util_netlogon.h"
 #include "libcli/security/dom_sid.h"
 
@@ -53,8 +55,54 @@ struct tevent_req *winbindd_pam_auth_crap_send(
 		uint16_t validation_level;
 		union netr_Validation *validation = NULL;
 		NTSTATUS status;
+		uint8_t *data = cli->request->extra_data.data;
+		size_t length = cli->request->extra_len;
+
+		if (state->flags & WBFLAG_PAM_IMPERSONATE) {
+			struct PAC_DATA_CTR *pac_data_ctr = NULL;
+			char *account = NULL;
+			char *passwd = NULL;
+			char *impersonee = cli->request->data.auth.user;
+
+			if (asprintf(&account, "%s$@%s", lp_netbios_name(), lp_realm()) == -1) {
+				DBG_ERR("failed to allocate machine principal\n");
+				tevent_req_nterror(req, NT_STATUS_NO_MEMORY);
+				return tevent_req_post(req, ev);
+			}
+
+			passwd = secrets_fetch_machine_password(lp_workgroup(), NULL, NULL);
+			if (passwd == NULL) {
+				DBG_ERR("failed to fetch machine password\n");
+				tevent_req_nterror(req, NT_STATUS_LOGON_FAILURE);
+				return tevent_req_post(req, ev);
+			}
+
+			status = kerberos_return_pac(mem_ctx,
+						     account,
+						     passwd,
+						     0,
+						     NULL,
+						     NULL,
+						     NULL,
+						     true,
+						     true,
+						     2592000,
+						     impersonee,
+						     account,
+						     &pac_data_ctr);
+			if (!NT_STATUS_IS_OK(status)) {
+				DBG_ERR("failed to impersonate user to self, error %s\n", nt_errstr(status));
+				tevent_req_nterror(req, NT_STATUS_LOGON_FAILURE);
+				return tevent_req_post(req, ev);
+			}
+
+			data = pac_data_ctr->pac_blob.data;
+			length = pac_data_ctr->pac_blob.length;
+		}
 
 		status = winbindd_pam_auth_pac_verify(cli,
+						      data,
+						      length,
 						      &is_trusted,
 						      &validation_level,
 						      &validation);
