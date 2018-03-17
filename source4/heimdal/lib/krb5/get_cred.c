@@ -919,6 +919,25 @@ get_cred_kdc_capath(krb5_context context,
     return ret;
 }
 
+/* Unparse princ and re-parse it as an enterprise principal.
+ * borrowed from MIT code */
+static krb5_error_code
+convert_to_enterprise(krb5_context context, krb5_principal princ,
+                      krb5_principal *eprinc_out)
+{
+    krb5_error_code code;
+    char *str;
+
+    *eprinc_out = NULL;
+    code = krb5_unparse_name(context, princ, &str);
+    if (code != 0)
+        return code;
+    code = krb5_parse_name_flags(context, str, KRB5_PRINCIPAL_PARSE_ENTERPRISE,
+                                 eprinc_out);
+    // free(str); ?
+    return code;
+}
+
 static krb5_error_code
 get_cred_kdc_referral(krb5_context context,
 		      krb5_kdc_flags flags,
@@ -929,13 +948,14 @@ get_cred_kdc_referral(krb5_context context,
 		      krb5_creds **out_creds,
 		      krb5_creds ***ret_tgts)
 {
-    krb5_const_realm client_realm;
+    krb5_const_realm client_realm, impersonate_realm;
+    krb5_principal impersonate_krbtgt, enterprise_server = NULL;
     krb5_error_code ret;
     krb5_creds tgt, referral, ticket;
     int loop = 0;
     int ok_as_delegate = 1;
 
-    if (in_creds->server->name.name_string.len < 2 && !flags.b.canonicalize) {
+    if (0 && in_creds->server->name.name_string.len < 2 && !flags.b.canonicalize) {
 	krb5_set_error_message(context, KRB5KDC_ERR_PATH_NOT_ACCEPTED,
 			       N_("Name too short to do referals, skipping", ""));
 	return KRB5KDC_ERR_PATH_NOT_ACCEPTED;
@@ -949,6 +969,25 @@ get_cred_kdc_referral(krb5_context context,
     *out_creds = NULL;
 
     client_realm = krb5_principal_get_realm(context, in_creds->client);
+
+    bool init_ref = false;
+
+    if (impersonate_principal) {
+        impersonate_realm = krb5_principal_get_realm(context, impersonate_principal);
+
+	if (!krb5_realm_compare(context, impersonate_principal, in_creds->client))
+	    init_ref = true;
+
+        ret = krb5_make_principal(context, &impersonate_krbtgt,
+                                          client_realm, KRB5_TGS_NAME,
+					  impersonate_realm, NULL);
+	if (ret)
+	    return ret;
+	// can leak
+	ret = convert_to_enterprise(context, in_creds->server, &enterprise_server);
+	if (ret)
+	    return ret;
+    }
 
     /* find tgt for the clients base realm */
     {
@@ -969,7 +1008,7 @@ get_cred_kdc_referral(krb5_context context,
     }
 
     referral = *in_creds;
-    ret = krb5_copy_principal(context, in_creds->server, &referral.server);
+    ret = krb5_copy_principal(context, enterprise_server ?: in_creds->server, &referral.server);
     if (ret) {
 	krb5_free_cred_contents(context, &tgt);
 	return ret;
@@ -995,9 +1034,19 @@ get_cred_kdc_referral(krb5_context context,
 	    ret = EINVAL;
 
 	if (ret) {
-	    ret = get_cred_kdc_address(context, ccache, flags, NULL,
+            if (impersonate_principal && init_ref) {
+		init_ref = false;
+		mcreds = *in_creds;
+		ret = krb5_copy_principal(context, impersonate_krbtgt, &mcreds.server);
+		if (ret)
+		    goto out;
+                ret = get_cred_kdc_address(context, ccache, flags, NULL, &mcreds, &tgt, NULL, second_ticket, &ticket);
+            }
+	    else {
+	        ret = get_cred_kdc_address(context, ccache, flags, NULL,
 				       &referral, &tgt, impersonate_principal,
 				       second_ticket, &ticket);
+	    }
 	    if (ret)
 		goto out;
 	}
