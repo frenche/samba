@@ -2212,15 +2212,6 @@ static krb5_error_code samba_kdc_lookup_realm(krb5_context context,
 	if (flags & SDB_F_GET_SERVER) {
 		char *service_realm = NULL;
 
-		ret = principal_comp_strcmp(context, principal, 0, KRB5_TGS_NAME);
-		if (ret == 0) {
-			/*
-			 * we need to search krbtgt/ locally
-			 */
-			TALLOC_FREE(frame);
-			return 0;
-		}
-
 		/*
 		 * We need to check the last component against the routing table.
 		 *
@@ -2251,6 +2242,25 @@ static krb5_error_code samba_kdc_lookup_realm(krb5_context context,
 		 */
 		TALLOC_FREE(frame);
 		return 0;
+	}
+
+	ret = principal_comp_strcmp(context, principal, 0, KRB5_TGS_NAME);
+	if (ret == 0) {
+		const char * const *attrs = trust_attrs;
+		struct ldb_message *msg = NULL;
+		status = dsdb_trust_search_tdo(kdc_db_ctx->samdb, realm, realm,
+						attrs, frame, &msg);
+		if (NT_STATUS_EQUAL(status, NT_STATUS_NO_MEMORY)) {
+			TALLOC_FREE(frame);
+			return ENOMEM;
+		}
+		if (NT_STATUS_IS_OK(status)) {
+			/*
+			* we need to search krbtgt/ locally
+			*/
+			TALLOC_FREE(frame);
+			return 0;
+		}
 	}
 
 	status = dsdb_trust_routing_table_load(kdc_db_ctx->samdb,
