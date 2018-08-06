@@ -412,6 +412,17 @@ gsskrb5_acceptor_start(OM_uint32 * minor_status,
 	    return GSS_S_FAILURE;
 	}
 
+	if (acceptor_cred != NULL &&
+		(acceptor_cred->cred_flags & GSS_CF_NO_TRANSIT_CHECK)) {
+	    kret = krb5_rd_req_in_set_no_transit_check(context, in, true);
+	    if (kret) {
+		if (in)
+		    krb5_rd_req_in_ctx_free(context, in);
+		*minor_status = kret;
+		return GSS_S_FAILURE;
+	    }
+	}
+
 	kret = krb5_rd_req_ctx(context,
 			       &ctx->auth_context,
 			       &indata,

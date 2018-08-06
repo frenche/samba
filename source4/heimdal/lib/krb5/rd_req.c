@@ -253,7 +253,8 @@ krb5_decrypt_ticket(krb5_context context,
 	    return KRB5KRB_AP_ERR_TKT_EXPIRED;
 	}
 
-	if(!t.flags.transited_policy_checked) {
+	if(!t.flags.transited_policy_checked &&
+		!(flags & KRB5_VERIFY_AP_REQ_NO_TRANSIT_CHECK)) {
 	    ret = check_transited(context, ticket, &t);
 	    if(ret) {
 		free_EncTicketPart(&t);
@@ -519,6 +520,7 @@ struct krb5_rd_req_in_ctx_data {
     krb5_keytab keytab;
     krb5_keyblock *keyblock;
     krb5_boolean check_pac;
+    krb5_boolean no_transit_check;
 };
 
 struct krb5_rd_req_out_ctx_data {
@@ -605,6 +607,15 @@ krb5_rd_req_in_set_keyblock(krb5_context context,
 			    krb5_keyblock *keyblock)
 {
     in->keyblock = keyblock; /* XXX should make copy */
+    return 0;
+}
+
+KRB5_LIB_FUNCTION krb5_error_code KRB5_LIB_CALL
+krb5_rd_req_in_set_no_transit_check(krb5_context context,
+			     krb5_rd_req_in_ctx in,
+			     krb5_boolean flag)
+{
+    in->no_transit_check = flag;
     return 0;
 }
 
@@ -850,6 +861,7 @@ krb5_rd_req_ctx(krb5_context context,
     krb5_rd_req_out_ctx o = NULL;
     krb5_keytab id = NULL, keytab = NULL;
     krb5_principal service = NULL;
+    krb5_flags verify_ap_flags = 0;
 
     *outctx = NULL;
 
@@ -937,6 +949,9 @@ krb5_rd_req_ctx(krb5_context context,
 	}
     }
 
+    if (inctx != NULL && inctx->no_transit_check) {
+	verify_ap_flags |= KRB5_VERIFY_AP_REQ_NO_TRANSIT_CHECK;
+    }
     if (o->keyblock) {
 	/*
 	 * We got an exact keymatch, use that.
@@ -947,7 +962,7 @@ krb5_rd_req_ctx(krb5_context context,
 				  &ap_req,
 				  server,
 				  o->keyblock,
-				  0,
+				  verify_ap_flags,
 				  &o->ap_req_options,
 				  &o->ticket,
 				  KRB5_KU_AP_REQ_AUTH);
@@ -995,7 +1010,7 @@ krb5_rd_req_ctx(krb5_context context,
 				      &ap_req,
 				      server,
 				      &entry.keyblock,
-				      0,
+				      verify_ap_flags,
 				      &o->ap_req_options,
 				      &o->ticket,
 				      KRB5_KU_AP_REQ_AUTH);

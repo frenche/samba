@@ -600,6 +600,23 @@ static NTSTATUS gse_init_server(TALLOC_CTX *mem_ctx,
 		goto done;
 	}
 
+#ifdef GSS_KRB5_CRED_NO_TRANSIT_CHECK_X
+	{
+		gss_buffer_desc empty_buffer = GSS_C_EMPTY_BUFFER;
+		gss_OID oid = discard_const(GSS_KRB5_CRED_NO_TRANSIT_CHECK_X);
+
+		gss_maj = gss_set_cred_option(&gss_min, &gse_ctx->creds, oid,
+					      &empty_buffer);
+		if (gss_maj != 0) {
+			DEBUG(0, ("gss_set_cred_option failed with [%s]\n",
+				  gse_errstr(gse_ctx, gss_maj, gss_min)));
+			status = NT_STATUS_INTERNAL_ERROR;
+			/* do we need to release the cred handle? */
+			goto done;
+		}
+	}
+#endif /* GSS_KRB5_CRED_NO_TRANSIT_CHECK_X */
+
 	status = NT_STATUS_OK;
 
 done:

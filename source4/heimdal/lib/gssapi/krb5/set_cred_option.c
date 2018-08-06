@@ -196,9 +196,7 @@ out:
 
 static OM_uint32
 no_ci_flags(OM_uint32 *minor_status,
-	    krb5_context context,
-	    gss_cred_id_t *cred_handle,
-	    const gss_buffer_t value)
+	    gss_cred_id_t *cred_handle)
 {
     gsskrb5_cred cred;
 
@@ -212,7 +210,24 @@ no_ci_flags(OM_uint32 *minor_status,
 
     *minor_status = 0;
     return GSS_S_COMPLETE;
+}
 
+static OM_uint32
+no_transit_check(OM_uint32 *minor_status,
+		 gss_cred_id_t *cred_handle)
+{
+    gsskrb5_cred cred;
+
+    if (cred_handle == NULL || *cred_handle == GSS_C_NO_CREDENTIAL) {
+	*minor_status = 0;
+	return GSS_S_FAILURE;
+    }
+
+    cred = (gsskrb5_cred)*cred_handle;
+    cred->cred_flags |= GSS_CF_NO_TRANSIT_CHECK;
+
+    *minor_status = 0;
+    return GSS_S_COMPLETE;
 }
 
 
@@ -239,9 +254,12 @@ _gsskrb5_set_cred_option
 	return allowed_enctypes(minor_status, context, cred_handle, value);
 
     if (gss_oid_equal(desired_object, GSS_KRB5_CRED_NO_CI_FLAGS_X)) {
-	return no_ci_flags(minor_status, context, cred_handle, value);
+	return no_ci_flags(minor_status, cred_handle);
     }
 
+    if (gss_oid_equal(desired_object, GSS_KRB5_CRED_NO_TRANSIT_CHECK_X)) {
+	return no_transit_check(minor_status, cred_handle);
+    }
 
     *minor_status = EINVAL;
     return GSS_S_FAILURE;
