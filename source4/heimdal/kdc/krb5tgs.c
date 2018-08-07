@@ -888,13 +888,13 @@ tgs_make_reply(krb5_context context,
 #define PRINCIPAL_FORCE_TRANSITED_CHECK(P)		0
 #define PRINCIPAL_ALLOW_DISABLE_TRANSITED_CHECK(P)	0
 
-    ret = fix_transited_encoding(context, config,
-				 !f.disable_transited_check ||
+    ret = fix_transited_encoding(context, config, 0,
+				 /*!f.disable_transited_check ||
 				 GLOBAL_FORCE_TRANSITED_CHECK ||
 				 PRINCIPAL_FORCE_TRANSITED_CHECK(server) ||
 				 !((GLOBAL_ALLOW_PER_PRINCIPAL &&
 				    PRINCIPAL_ALLOW_DISABLE_TRANSITED_CHECK(server)) ||
-				   GLOBAL_ALLOW_DISABLE_TRANSITED_CHECK),
+				   GLOBAL_ALLOW_DISABLE_TRANSITED_CHECK),*/
 				 &tgt->transited, &et,
 				 krb5_principal_get_realm(context, client_principal),
 				 krb5_principal_get_realm(context, server->entry.principal),
@@ -1380,6 +1380,8 @@ tgs_parse_request(krb5_context context,
 	verify_ap_req_flags = KRB5_VERIFY_AP_REQ_IGNORE_INVALID;
     else
 	verify_ap_req_flags = 0;
+
+    verify_ap_req_flags |= KRB5_VERIFY_AP_REQ_NO_TRANSIT_CHECK;
 
     ret = krb5_verify_ap_req2(context,
 			      &ac,
