@@ -46,11 +46,35 @@
 #endif
 #endif
 
+ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
+parse_time (const char *s, const char *def_unit);
+
+ROKEN_LIB_FUNCTION size_t ROKEN_LIB_CALL
+unparse_time (int t, char *s, size_t len);
+
+ROKEN_LIB_FUNCTION size_t ROKEN_LIB_CALL
+unparse_time_approx (int t, char *s, size_t len);
+
+ROKEN_LIB_FUNCTION void ROKEN_LIB_CALL
+print_time_table (FILE *f);
+
+/* And again, but renamed */
+
 #define parse_time rk_parse_time
 #define unparse_time rk_unparse_time
 #define unparse_time_approx rk_unparse_time_approx
 #define print_time_table rk_print_time_table
 
-#include "parse_time_proto.h"
+ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
+parse_time (const char *s, const char *def_unit);
+
+ROKEN_LIB_FUNCTION size_t ROKEN_LIB_CALL
+unparse_time (int t, char *s, size_t len);
+
+ROKEN_LIB_FUNCTION size_t ROKEN_LIB_CALL
+unparse_time_approx (int t, char *s, size_t len);
+
+ROKEN_LIB_FUNCTION void ROKEN_LIB_CALL
+print_time_table (FILE *f);
 
 #endif /* __PARSE_TIME_H__ */

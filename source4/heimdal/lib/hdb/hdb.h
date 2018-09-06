@@ -261,6 +261,7 @@ typedef struct HDB {
      */
     krb5_error_code (*hdb_auth_status)(krb5_context, struct HDB *,
 				       hdb_entry_ex *, struct sockaddr *from_addr,
+				       struct timeval *start_time,
 				       const char *original_client_name,
 				       const char *auth_type,
 				       int);
@@ -278,9 +279,17 @@ typedef struct HDB {
      * Check if s4u2self is allowed from this client to this server
      */
     krb5_error_code (*hdb_check_s4u2self)(krb5_context, struct HDB *, hdb_entry_ex *, krb5_const_principal);
+
+    /**
+     * Enable/disable synchronous updates
+     *
+     * Calling this with 0 disables sync.  Calling it with non-zero enables
+     * sync and does an fsync().
+     */
+    krb5_error_code (*hdb_set_sync)(krb5_context, struct HDB *, int);
 }HDB;
 
-#define HDB_INTERFACE_VERSION	9
+#define HDB_INTERFACE_VERSION	10
 
 struct hdb_method {
     int			version;

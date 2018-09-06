@@ -348,6 +348,7 @@ pa_pkinit_validate(kdc_request_t r, const PA_DATA *pa)
     if (r->clientdb->hdb_auth_status)
 	    (r->clientdb->hdb_auth_status)(r->context, r->clientdb, r->client,
 					   r->from_addr,
+					   &_kdc_now,
 					   r->client_name,
 					   "PKINIT",
 					   HDB_AUTH_PKINIT_SUCCESS);
@@ -573,6 +574,7 @@ pa_enc_chal_validate(kdc_request_t r, const PA_DATA *pa)
 	if (r->clientdb->hdb_auth_status)
 	    (r->clientdb->hdb_auth_status)(r->context, r->clientdb, r->client,
 					   r->from_addr,
+					   &_kdc_now,
 					   r->client_name,
 					   "ENC-CHAL",
 					   HDB_AUTH_CORRECT_PASSWORD);
@@ -582,10 +584,11 @@ pa_enc_chal_validate(kdc_request_t r, const PA_DATA *pa)
 
     if (invalidPassword && r->clientdb->hdb_auth_status) {
 	    r->clientdb->hdb_auth_status(r->context, r->clientdb, r->client,
-                                     r->from_addr,
-                                     r->client_name,
-                                     "ENC-CHAL",
-			 	                     HDB_AUTH_WRONG_PASSWORD);
+					 r->from_addr,
+					 &_kdc_now,
+					 r->client_name,
+					 "ENC-CHAL",
+					 HDB_AUTH_WRONG_PASSWORD);
 	ret = KRB5KDC_ERR_PREAUTH_FAILED;
     }
  out:
@@ -695,6 +698,7 @@ pa_enc_ts_validate(kdc_request_t r, const PA_DATA *pa)
 	if (r->clientdb->hdb_auth_status)
 		(r->clientdb->hdb_auth_status)(r->context, r->clientdb, r->client,
 					       r->from_addr,
+					       &_kdc_now,
 					       r->client_name,
 					       str ? str : "unknown enctype",
 					       HDB_AUTH_WRONG_PASSWORD);
@@ -1347,7 +1351,7 @@ kdc_check_flags(krb5_context context,
 	if (client->flags.locked_out) {
 	    kdc_log(context, config, 0,
 		    "Client (%s) is locked out", client_name);
-	    return KRB5KDC_ERR_POLICY;
+	    return KRB5KDC_ERR_CLIENT_REVOKED;
 	}
 
 	if (client->flags.invalid) {
@@ -1677,7 +1681,7 @@ _kdc_as_rep(kdc_request_t r,
     KDCOptions f;
     krb5_enctype setype;
     krb5_error_code ret = 0;
-    Key *skey;
+    Key *skey = NULL;
     int found_pa = 0;
     int i, flags = HDB_F_FOR_AS_REQ;
     METHOD_DATA error_method;
@@ -1803,6 +1807,7 @@ _kdc_as_rep(kdc_request_t r,
 	if (config->db[0] && config->db[0]->hdb_auth_status)
 		(config->db[0]->hdb_auth_status)(context, config->db[0], NULL,
 						 from_addr,
+						 &_kdc_now,
 						 r->client_name,
 						 NULL,
 						 HDB_AUTH_CLIENT_UNKNOWN);
@@ -1955,6 +1960,7 @@ _kdc_as_rep(kdc_request_t r,
     if (r->clientdb->hdb_auth_status) {
 	r->clientdb->hdb_auth_status(context, r->clientdb, r->client,
 				     r->from_addr,
+				     &_kdc_now,
 				     r->client_name,
 				     NULL,
 				     HDB_AUTH_CORRECT_PASSWORD);
@@ -1973,10 +1979,11 @@ _kdc_as_rep(kdc_request_t r,
 
     if (r->clientdb->hdb_auth_status) {
 	    (r->clientdb->hdb_auth_status)(r->context, r->clientdb, r->client,
-				        r->from_addr,
-				        r->client_name,
-				        NULL,
-				        HDB_AUTHZ_SUCCESS);
+					   r->from_addr,
+					   &_kdc_now,
+					   r->client_name,
+					   NULL,
+					   HDB_AUTHZ_SUCCESS);
     }
     /*
      * Select the best encryption type for the KDC with out regard to
@@ -2021,10 +2028,13 @@ _kdc_as_rep(kdc_request_t r,
     _krb5_principal2principalname(&rep.ticket.sname,
 				  r->server->entry.principal);
     /* java 1.6 expects the name to be the same type, lets allow that
-     * uncomplicated name-types. */
+     * uncomplicated name-types, when f.canonicalize is not set (to
+     * match Windows Server 1709). */
 #define CNT(sp,t) (((sp)->sname->name_type) == KRB5_NT_##t)
-    if (CNT(b, UNKNOWN) || CNT(b, PRINCIPAL) || CNT(b, SRV_INST) || CNT(b, SRV_HST) || CNT(b, SRV_XHST))
+    if (!f.canonicalize
+	&& (CNT(b, UNKNOWN) || CNT(b, PRINCIPAL) || CNT(b, SRV_INST) || CNT(b, SRV_HST) || CNT(b, SRV_XHST))) {
 	rep.ticket.sname.name_type = b->sname->name_type;
+    }
 #undef CNT
 
     r->et.flags.initial = 1;
@@ -2301,21 +2311,17 @@ out:
     /*
      * In case of a non proxy error, build an error message.
      */
-    if(ret != 0 && ret != HDB_ERR_NOT_FOUND_HERE && reply->length == 0) {
-	PrincipalName *error_client_name = NULL;
-	Realm *error_client_realm = NULL;
-	if (r->client_princ) {
-	    error_client_name = &r->client_princ->name;
-	    error_client_realm = &r->client_princ->realm;
-	}
+    if (ret != 0 && ret != HDB_ERR_NOT_FOUND_HERE && reply->length == 0) {
 	ret = _kdc_fast_mk_error(context, r,
 				 &error_method,
 				 r->armor_crypto,
 				 &req->req_body,
 				 ret, r->e_text,
 				 r->server_princ,
-				 error_client_name,
-				 error_client_realm,
+				 r->client_princ ?
+                                     &r->client_princ->name : NULL,
+				 r->client_princ ?
+                                     &r->client_princ->realm : NULL,
 				 NULL, NULL,
 				 reply);
 	if (ret)

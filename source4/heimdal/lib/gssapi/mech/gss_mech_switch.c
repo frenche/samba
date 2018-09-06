@@ -37,7 +37,7 @@ struct _gss_mech_switch_list _gss_mechs = { NULL } ;
 gss_OID_set _gss_mech_oids;
 static HEIMDAL_MUTEX _gss_mech_mutex = HEIMDAL_MUTEX_INITIALIZER;
 
-#ifdef DL_OPEN
+#ifdef HAVE_DLOPEN
 /*
  * Convert a string containing an OID in 'dot' form
  * (e.g. 1.2.840.113554.1.2.2) to a gss_OID.

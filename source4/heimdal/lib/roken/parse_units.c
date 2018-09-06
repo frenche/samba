@@ -77,7 +77,7 @@ parse_something (const char *s, const struct units *units,
 	unsigned partial;
 	int no_val_p = 0;
 
-	while(isspace((unsigned char)*p) || *p == ',')
+	while (isspace((unsigned char)*p) || *p == ',')
 	    ++p;
 
 	val = strtol(p, &next, 0);
@@ -134,6 +134,8 @@ parse_something (const char *s, const struct units *units,
 	    }
 	}
 	if (*p == 's')
+	    ++p;
+	while (isspace((unsigned char)*p))
 	    ++p;
     }
     return res;
@@ -334,9 +336,6 @@ print_flags_table (const struct units *units, FILE *f)
 #undef unparse_flags
 #undef print_flags_table
 
-/* Now include prototypes again, this time without the _rk prefix */
-#include "parse_units_proto.h"
-
 ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
 parse_units(const char *s, const struct units *units,
 	     const char *def_unit)
@@ -359,7 +358,7 @@ unparse_units_approx(int num, const struct units *units, char *s, size_t len)
 ROKEN_LIB_FUNCTION void ROKEN_LIB_CALL
 print_units_table(const struct units *units, FILE *f)
 {
-    print_units_table(units, f);
+    rk_print_units_table(units, f);
 }
 
 ROKEN_LIB_FUNCTION int ROKEN_LIB_CALL
@@ -377,5 +376,5 @@ unparse_flags(int num, const struct units *units, char *s, size_t len)
 ROKEN_LIB_FUNCTION void ROKEN_LIB_CALL
 print_flags_table (const struct units *units, FILE *f)
 {
-    return rk_print_flags_table (units, f);
+    rk_print_flags_table (units, f);
 }

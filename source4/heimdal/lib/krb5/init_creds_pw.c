@@ -2348,6 +2348,30 @@ krb5_init_creds_step(krb5_context context,
 		_krb5_debug(context, 10, "init_creds: err skew updating kdc offset to %d",
 			    context->kdc_sec_offset);
 
+		if (ret)
+		    goto out;
+
+		if (krb5_principal_is_krbtgt(context, ctx->cred.server)) {
+		    ret = krb5_init_creds_set_service(context, ctx, NULL);
+		    if (ret)
+			goto out;
+		}
+
+		free_AS_REQ(&ctx->as_req);
+		memset(&ctx->as_req, 0, sizeof(ctx->as_req));
+
+		if (ret)
+		    goto out;
+
+		if (krb5_principal_is_krbtgt(context, ctx->cred.server)) {
+		    ret = krb5_init_creds_set_service(context, ctx, NULL);
+		    if (ret)
+			goto out;
+		}
+
+		free_AS_REQ(&ctx->as_req);
+		memset(&ctx->as_req, 0, sizeof(ctx->as_req));
+
 		ctx->used_pa_types = 0;
 
 	    } else if (ret == KRB5_KDC_ERR_WRONG_REALM && ctx->flags.canonicalize) {
@@ -2426,6 +2450,24 @@ krb5_init_creds_step(krb5_context context,
 	    }
 	    if (ret)
 		goto out;
+	}
+    }
+
+    if (ctx->as_req.req_body.cname == NULL) {
+	ret = init_as_req(context, ctx->flags, &ctx->cred,
+			  ctx->addrs, ctx->etypes, &ctx->as_req);
+	if (ret) {
+	    free_init_creds_ctx(context, ctx);
+	    return ret;
+	}
+    }
+
+    if (ctx->as_req.req_body.cname == NULL) {
+	ret = init_as_req(context, ctx->flags, &ctx->cred,
+			  ctx->addrs, ctx->etypes, &ctx->as_req);
+	if (ret) {
+	    free_init_creds_ctx(context, ctx);
+	    return ret;
 	}
     }
 
