@@ -370,11 +370,11 @@ krb5_config_parse_debug (struct fileptr *f,
 	    b = NULL;
 	} else if (*p == '}') {
 	    *err_message = "unmatched }";
-	    return KRB5_CONFIG_BADFORMAT;
+	    return EINVAL;	/* XXX */
 	} else if(*p != '\0') {
 	    if (s == NULL) {
 		*err_message = "binding before section";
-		return KRB5_CONFIG_BADFORMAT;
+		return EINVAL;
 	    }
 	    ret = parse_binding(f, lineno, p, &b, &s->u.list, err_message);
 	    if (ret)
@@ -444,17 +444,22 @@ krb5_config_parse_file_multi (krb5_context context,
 		home = pw->pw_dir;
 	}
 	if (home) {
-	    int aret;
-
-	    aret = asprintf(&newfname, "%s%s", home, &fname[1]);
-	    if (aret == -1 || newfname == NULL)
-		return krb5_enomem(context);
+	    asprintf(&newfname, "%s%s", home, &fname[1]);
+	    if (newfname == NULL) {
+		krb5_set_error_message(context, ENOMEM,
+				       N_("malloc: out of memory", ""));
+		return ENOMEM;
+	    }
 	    fname = newfname;
 	}
 #else  /* KRB5_USE_PATH_TOKENS */
 	if (asprintf(&newfname, "%%{USERCONFIG}%s", &fname[1]) < 0 ||
 	    newfname == NULL)
-	    return krb5_enomem(context);
+	{
+	    krb5_set_error_message(context, ENOMEM,
+				   N_("malloc: out of memory", ""));
+	    return ENOMEM;
+	}
 	fname = newfname;
 #endif
     }
@@ -920,7 +925,7 @@ krb5_config_vget_strings(krb5_context context,
 			 va_list args)
 {
     char **strings = NULL;
-    size_t nstr = 0;
+    int nstr = 0;
     const krb5_config_binding *b = NULL;
     const char *p;
 

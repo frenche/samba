@@ -502,7 +502,7 @@ is_primitive_type(int type)
 }
 
 static void
-space(size_t level)
+space(int level)
 {
     while(level-- > 0)
 	fprintf(headerfile, "  ");
@@ -531,7 +531,7 @@ have_ellipsis(Type *t)
 }
 
 static void
-define_asn1 (size_t level, Type *t)
+define_asn1 (int level, Type *t)
 {
     switch (t->type) {
     case TType:

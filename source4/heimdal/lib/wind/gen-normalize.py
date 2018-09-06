@@ -51,7 +51,7 @@ ud = UnicodeData.read(sys.argv[1])
 
 def sortedKeys(d):
     """Return a sorted list of the keys of a dict"""
-    keys = list(d.keys())
+    keys = d.keys()
     keys.sort()
     return keys
 
@@ -136,7 +136,7 @@ exclusions = UnicodeData.read(sys.argv[2])
 inv = dict([(''.join(["%05x" % int(x, 0x10) for x in v[4].split(' ')]),
              [k, v[0]])
             for k,v in ud.items()
-            if v[4] and not re.search('<[a-zA-Z]+> *', v[4]) and not k in exclusions])
+            if v[4] and not re.search('<[a-zA-Z]+> *', v[4]) and not exclusions.has_key(k)])
 
 table = 0
 

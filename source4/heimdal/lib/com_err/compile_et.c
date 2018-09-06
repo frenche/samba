@@ -60,8 +60,8 @@ extern int yydebug = 1;
 #endif
 
 char *filename;
-char hfn[130];
-char cfn[130];
+char hfn[128];
+char cfn[128];
 
 struct error_code *codes = NULL;
 
@@ -128,7 +128,7 @@ static int
 generate_h(void)
 {
     struct error_code *ec;
-    char fn[134];
+    char fn[128];
     FILE *h_file = fopen(hfn, "w");
     char *p;
 
