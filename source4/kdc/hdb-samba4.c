@@ -83,6 +83,15 @@ static krb5_error_code hdb_samba4_store(krb5_context context, HDB *db, unsigned 
 	return HDB_ERR_DB_INUSE;
 }
 
+/*
+ * If we ever want kadmin to work fast, we might try and reopen the
+ * ldb with LDB_NOSYNC
+ */
+static krb5_error_code hdb_samba4_set_sync(krb5_context context, struct HDB *db, int set_sync)
+{
+	return 0;
+}
+
 static krb5_error_code hdb_samba4_fetch_kvno(krb5_context context, HDB *db,
 					     krb5_const_principal principal,
 					     unsigned flags,
@@ -570,6 +579,7 @@ NTSTATUS hdb_samba4_create_kdc(struct samba_kdc_base_context *base_ctx,
 	(*db)->hdb_nextkey = hdb_samba4_nextkey;
 	(*db)->hdb_lock = hdb_samba4_lock;
 	(*db)->hdb_unlock = hdb_samba4_unlock;
+	(*db)->hdb_set_sync = hdb_samba4_set_sync;
 	(*db)->hdb_rename = hdb_samba4_rename;
 	/* we don't implement these, as we are not a lockable database */
 	(*db)->hdb__get = NULL;
