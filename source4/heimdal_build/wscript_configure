@@ -74,6 +74,10 @@ conf.ADD_NAMED_CFLAGS('HEIMDAL_PICKY_CFLAGS',
                       '-Wno-error=cast-qual',
                       testflags=True)
 
+conf.ADD_NAMED_CFLAGS('HEIMDAL_PICKY_UNUSED_RESULT_CFLAGS',
+                      '-Wno-error=unused-result',
+                      testflags=True)
+
 conf.DEFINE('SAMBA4_USES_HEIMDAL', 1)
 
 # setup the right defines for a in-tree heimdal build

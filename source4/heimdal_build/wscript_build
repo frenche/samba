@@ -279,12 +279,14 @@ def HEIMDAL_SUBSYSTEM(modname, source,
 
     bld.set_group(group)
 
-    # If we found the -Wno-error=discarded-qualifiers and cast-qual
+    # If we found the -Wno-error=unused-result
+    # -Wno-error=discarded-qualifiers and cast-qual
     # declarations then build without allowing warnings, otherwise
     # permit them
-    if len(bld.env.HEIMDAL_PICKY_CFLAGS) == 2:
-        samba_cflags = CURRENT_CFLAGS(bld, modname, cflags) + \
-                       bld.env.HEIMDAL_PICKY_CFLAGS
+    if (len(bld.env.HEIMDAL_PICKY_CFLAGS) == 2 and
+        len(bld.env.HEIMDAL_PICKY_UNUSED_RESULT_CFLAGS) == 1):
+        samba_cflags = (bld.env.HEIMDAL_PICKY_CFLAGS +
+                        CURRENT_CFLAGS(bld, modname, cflags))
     else:
         samba_cflags = CURRENT_CFLAGS(bld, modname, cflags,
                                       allow_warnings=True)
@@ -1045,7 +1047,14 @@ HEIMDAL_SUBSYSTEM('HEIMDAL_VERS',
         deps='roken replace')
 
 
+# Thankfully these flags only needed for the code compilers
+code_compile_cflags = ['-DSOCKET_WRAPPER_DISABLE=1', '-D_SAMBA_HOSTCC_']
+
+if len(bld.env.HEIMDAL_PICKY_UNUSED_RESULT_CFLAGS) == 2:
+    code_compile_cflags += bld.env.HEIMDAL_PICKY_UNUSED_RESULT_CFLAGS
+
 if not bld.CONFIG_SET('USING_SYSTEM_ASN1_COMPILE'):
+
     # here is the asn1 compiler build rule
     HEIMDAL_BINARY('asn1_compile',
         'lib/asn1/gen.c lib/asn1/gen_copy.c '
@@ -1055,7 +1064,7 @@ if not bld.CONFIG_SET('USING_SYSTEM_ASN1_COMPILE'):
         'lib/asn1/asn1parse.c lib/asn1/lex.c lib/asn1/main.c',
         use_hostcc=True,
         use_global_deps=False,
-        cflags='-DSOCKET_WRAPPER_DISABLE=1 -D_SAMBA_HOSTCC_',
+        cflags=code_compile_cflags,
         includes='../heimdal/lib/asn1',
         group='build_compilers',
         deps='ROKEN_HOSTCC LIBREPLACE_HOSTCC HEIMDAL_VERS_HOSTCC',
@@ -1071,7 +1080,7 @@ if not bld.CONFIG_SET('USING_SYSTEM_COMPILE_ET'):
         use_global_deps=False,
         includes='../heimdal/lib/com_err',
         group='build_compilers',
-        cflags='-DSOCKET_WRAPPER_DISABLE=1 -D_SAMBA_HOSTCC_',
+        cflags=code_compile_cflags,
         deps='ROKEN_HOSTCC LIBREPLACE_HOSTCC HEIMDAL_VERS_HOSTCC',
         install=False
         )
