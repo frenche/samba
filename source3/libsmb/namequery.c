@@ -3040,7 +3040,7 @@ static NTSTATUS get_dc_list(const char *domain,
 	char *port_str = NULL;
 	int port;
 	char *name;
-	int num_addresses = 0;
+	unsigned int num_addresses = 0;
 	int  local_count, i, j;
 	struct ip_service *return_iplist = NULL;
 	struct ip_service *auto_ip_list = NULL;
