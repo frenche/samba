@@ -264,12 +264,13 @@ def HEIMDAL_LIBRARY(libname, source, deps, vnum, version_script, includes=''):
 
 
 def HEIMDAL_SUBSYSTEM(modname, source,
-                    deps='',
-                    includes='',
-                    cflags='',
-                    group='main',
-                    use_hostcc=False,
-                    use_global_deps=True):
+                      deps='',
+                      includes='',
+                      cflags='',
+                      final_cflags=None,
+                      group='main',
+                      use_hostcc=False,
+                      use_global_deps=True):
     '''define a Heimdal subsystem'''
 
     if not SET_TARGET_TYPE(bld, modname, 'SUBSYSTEM'):
@@ -286,9 +287,11 @@ def HEIMDAL_SUBSYSTEM(modname, source,
     if (len(bld.env.HEIMDAL_PICKY_CFLAGS) == 2 and
         len(bld.env.HEIMDAL_PICKY_UNUSED_RESULT_CFLAGS) == 1):
         samba_cflags = (bld.env.HEIMDAL_PICKY_CFLAGS +
-                        CURRENT_CFLAGS(bld, modname, cflags))
+                        CURRENT_CFLAGS(bld, modname, cflags,
+                                       final_cflags=final_cflags))
     else:
         samba_cflags = CURRENT_CFLAGS(bld, modname, cflags,
+                                      final_cflags=final_cflags,
                                       allow_warnings=True)
         
     return bld(
@@ -307,15 +310,16 @@ def HEIMDAL_SUBSYSTEM(modname, source,
 
 
 def HEIMDAL_BINARY(binname, source,
-                 deps='',
-                 includes='',
-                 cflags='',
-                 use_hostcc=False,
-                 use_global_deps=True,
-                 compiler=None,
-                 group='main',
-                 install=True,
-                 install_path=None):
+                   deps='',
+                   includes='',
+                   cflags='',
+                   final_cflags=None,
+                   use_hostcc=False,
+                   use_global_deps=True,
+                   compiler=None,
+                   group='main',
+                   install=True,
+                   install_path=None):
     '''define a Samba binary'''
 
     if not SET_TARGET_TYPE(bld, binname, 'BINARY'):
@@ -338,6 +342,7 @@ def HEIMDAL_BINARY(binname, source,
                       deps           = deps,
                       includes       = includes,
                       cflags         = cflags,
+                      final_cflags   = final_cflags,
                       group          = subsystem_group,
                       use_hostcc     = use_hostcc,
                       use_global_deps= use_global_deps)
@@ -1050,7 +1055,7 @@ HEIMDAL_SUBSYSTEM('HEIMDAL_VERS',
 # Thankfully these flags only needed for the code compilers
 code_compile_cflags = ['-DSOCKET_WRAPPER_DISABLE=1', '-D_SAMBA_HOSTCC_']
 
-if len(bld.env.HEIMDAL_PICKY_UNUSED_RESULT_CFLAGS) == 2:
+if len(bld.env.HEIMDAL_PICKY_UNUSED_RESULT_CFLAGS) == 1:
     code_compile_cflags += bld.env.HEIMDAL_PICKY_UNUSED_RESULT_CFLAGS
 
 if not bld.CONFIG_SET('USING_SYSTEM_ASN1_COMPILE'):
@@ -1065,6 +1070,7 @@ if not bld.CONFIG_SET('USING_SYSTEM_ASN1_COMPILE'):
         use_hostcc=True,
         use_global_deps=False,
         cflags=code_compile_cflags,
+        final_cflags=bld.env.HEIMDAL_PICKY_PERMIT_OVERFLOW_CFLAGS,
         includes='../heimdal/lib/asn1',
         group='build_compilers',
         deps='ROKEN_HOSTCC LIBREPLACE_HOSTCC HEIMDAL_VERS_HOSTCC',

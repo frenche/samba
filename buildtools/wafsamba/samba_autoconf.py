@@ -875,7 +875,10 @@ def ADD_EXTRA_INCLUDES(conf, includes):
 
 
 
-def CURRENT_CFLAGS(bld, target, cflags, allow_warnings=False, hide_symbols=False):
+def CURRENT_CFLAGS(bld, target, cflags,
+                   allow_warnings=False,
+                   hide_symbols=False,
+                   final_cflags=None):
     '''work out the current flags. local flags are added first'''
     ret = TO_LIST(cflags)
     if not 'EXTRA_CFLAGS' in bld.env:
@@ -888,6 +891,8 @@ def CURRENT_CFLAGS(bld, target, cflags, allow_warnings=False, hide_symbols=False
         ret.extend(list)
     if hide_symbols and bld.env.HAVE_VISIBILITY_ATTR:
         ret.append(bld.env.VISIBILITY_CFLAGS)
+    if final_cflags:
+        ret.extend(final_cflags)
     return ret
 
 
