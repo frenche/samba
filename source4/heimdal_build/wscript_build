@@ -979,10 +979,18 @@ if not bld.CONFIG_SET("USING_SYSTEM_HX509"):
                           HEIMDAL_HX509_OBJH_SOURCE,
                           options="-q -P comment -p")
 
+    HEIMDAL_SUBSYSTEM('hx509-gram',
+                      'lib/hx509/sel-gram.c',
+                      includes='../heimdal/lib/hx509',
+                      final_cflags=bld.env.HEIMDAL_PICKY_PERMIT_OVERFLOW_CFLAGS,
+                      deps='roken com_err asn1 hcrypto heimbase'),
+
     HEIMDAL_LIBRARY('hx509',
-        'lib/hx509/ca.c lib/hx509/cert.c lib/hx509/cms.c lib/hx509/collector.c lib/hx509/crypto-ec.c lib/hx509/crypto.c lib/hx509/error.c lib/hx509/env.c lib/hx509/file.c lib/hx509/keyset.c lib/hx509/ks_dir.c lib/hx509/ks_file.c lib/hx509/ks_keychain.c lib/hx509/ks_mem.c lib/hx509/ks_null.c lib/hx509/ks_p11.c lib/hx509/ks_p12.c lib/hx509/lock.c lib/hx509/name.c lib/hx509/peer.c lib/hx509/print.c lib/hx509/req.c lib/hx509/revoke.c lib/hx509/sel.c lib/hx509/hx509_err.c lib/hx509/sel-lex.c lib/hx509/sel-gram.c',
+        'lib/hx509/ca.c lib/hx509/cert.c lib/hx509/cms.c lib/hx509/collector.c lib/hx509/crypto-ec.c lib/hx509/crypto.c lib/hx509/error.c lib/hx509/env.c lib/hx509/file.c lib/hx509/keyset.c lib/hx509/ks_dir.c lib/hx509/ks_file.c lib/hx509/ks_keychain.c lib/hx509/ks_mem.c lib/hx509/ks_null.c lib/hx509/ks_p11.c lib/hx509/ks_p12.c lib/hx509/lock.c lib/hx509/name.c lib/hx509/peer.c lib/hx509/print.c lib/hx509/req.c lib/hx509/revoke.c lib/hx509/sel.c lib/hx509/hx509_err.c lib/hx509/sel-lex.c',
         includes='../heimdal/lib/hx509',
-        deps='roken com_err asn1 hcrypto asn1 HEIMDAL_OCSP_ASN1 HEIMDAL_PKCS8_ASN1 HEIMDAL_PKCS9_ASN1 HEIMDAL_PKCS12_ASN1 HEIMDAL_PKCS10_ASN1 wind heimbase',
+        deps='''roken com_err asn1 hcrypto asn1 HEIMDAL_OCSP_ASN1
+        HEIMDAL_PKCS8_ASN1 HEIMDAL_PKCS9_ASN1 HEIMDAL_PKCS12_ASN1
+        HEIMDAL_PKCS10_ASN1 wind heimbase hx509-gram''',
         vnum='5.0.0',
         version_script='lib/hx509/version-script.map',
         )
