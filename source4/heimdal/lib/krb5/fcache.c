@@ -802,8 +802,8 @@ fcc_get_principal(krb5_context context,
 		  krb5_principal *principal)
 {
     krb5_error_code ret;
-    int fd = 0;
-    krb5_storage *sp = NULL;
+    int fd;
+    krb5_storage *sp;
 
     ret = init_fcc (context, id, "get-principal", &sp, &fd, NULL);
     if (ret)
@@ -1240,7 +1240,7 @@ fcc_lastchange(krb5_context context, krb5_ccache id, krb5_timestamp *mtime)
 {
     krb5_error_code ret;
     struct stat sb;
-    int fd = 0;
+    int fd;
 
     ret = fcc_open(context, id, "lastchange", &fd, O_RDONLY, 0);
     if(ret)
