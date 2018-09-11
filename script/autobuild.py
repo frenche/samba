@@ -95,7 +95,7 @@ tasks = {
     # We have 'test' before 'install' because, 'test' should work without 'install (runs ad_dc_ntvfs and all the other envs)'
     "samba": [("configure", "./configure.developer --with-selftest-prefix=./bin/ab" + samba_configure_params, "text/plain"),
                 ("make", "make -j", "text/plain"),
-                ("test", "make test FAIL_IMMEDIATELY=1 "
+                ("test", "make test _FAIL_IMMEDIATELY=1 "
                  "TESTS='${PY3_ONLY}"
                  "--exclude-env=none "
                  "--exclude-env=nt4_dc "
@@ -126,7 +126,7 @@ tasks = {
     "samba-nt4": [("random-sleep", "script/random-sleep.sh 60 600", "text/plain"),
                     ("configure", "./configure.developer --without-ads --with-selftest-prefix=./bin/ab" + samba_configure_params, "text/plain"),
                     ("make", "make -j", "text/plain"),
-                    ("test", "make test FAIL_IMMEDIATELY=1 "
+                    ("test", "make test _FAIL_IMMEDIATELY=1 "
                      "TESTS='${PY3_ONLY}"
                      "--include-env=nt4_dc --include-env=nt4_member'", "text/plain"),
                     ("install", "make install", "text/plain"),
@@ -137,7 +137,7 @@ tasks = {
     "samba-fileserver": [("random-sleep", "script/random-sleep.sh 60 600", "text/plain"),
                            ("configure", "./configure.developer --without-ad-dc --without-ldap --without-ads --without-json-audit --with-selftest-prefix=./bin/ab" + samba_configure_params, "text/plain"),
                            ("make", "make -j", "text/plain"),
-                           ("test", "make test FAIL_IMMEDIATELY=1 "
+                           ("test", "make test _FAIL_IMMEDIATELY=1 "
                             "TESTS='${PY3_ONLY}"
                             "--include-env=fileserver'", "text/plain"),
                            ("check-clean-tree", "script/clean-source-tree.sh", "text/plain")],
@@ -146,7 +146,7 @@ tasks = {
     "samba-ad-dc": [("random-sleep", "script/random-sleep.sh 60 600", "text/plain"),
                       ("configure", "./configure.developer --with-selftest-prefix=./bin/ab" + samba_configure_params, "text/plain"),
                       ("make", "make -j", "text/plain"),
-                      ("test", "make test FAIL_IMMEDIATELY=1 "
+                      ("test", "make test _FAIL_IMMEDIATELY=1 "
                        "TESTS='${PY3_ONLY}"
                        "--include-env=ad_dc "
                        "--include-env=fl2003dc "
@@ -160,7 +160,7 @@ tasks = {
     "samba-ad-dc-2": [("random-sleep", "script/random-sleep.sh 60 600", "text/plain"),
                         ("configure", "./configure.developer --with-selftest-prefix=./bin/ab" + samba_configure_params, "text/plain"),
                         ("make", "make -j", "text/plain"),
-                        ("test", "make test FAIL_IMMEDIATELY=1 "
+                        ("test", "make test _FAIL_IMMEDIATELY=1 "
                          "TESTS='${PY3_ONLY}"
                          "--include-env=chgdcpass "
                          "--include-env=vampire_2000_dc "
@@ -177,7 +177,7 @@ tasks = {
 
     "samba-test-only": [("configure", "./configure.developer --with-selftest-prefix=./bin/ab  --abi-check-disable" + samba_configure_params, "text/plain"),
                           ("make", "make -j", "text/plain"),
-                          ("test", 'make test FAIL_IMMEDIATELY=1 TESTS="${TESTS}"', "text/plain")],
+                          ("test", 'make test _FAIL_IMMEDIATELY=1 TESTS="${TESTS}"', "text/plain")],
 
     # Test cross-compile infrastructure
     "samba-xc": [("random-sleep", "script/random-sleep.sh 60 600", "text/plain"),
@@ -195,7 +195,7 @@ tasks = {
     "samba-o3": [("random-sleep", "script/random-sleep.sh 60 600", "text/plain"),
                    ("configure", "ADDITIONAL_CFLAGS='-O3' ./configure.developer --with-selftest-prefix=./bin/ab --abi-check-disable" + samba_configure_params, "text/plain"),
                    ("make", "make -j", "text/plain"),
-                   ("test", "make quicktest FAIL_IMMEDIATELY=1 "
+                   ("test", "make quicktest _FAIL_IMMEDIATELY=1 "
                     "TESTS='${PY3_ONLY}"
                     "--include-env=ad_dc'", "text/plain"),
                    ("install", "make install", "text/plain"),
@@ -256,7 +256,7 @@ tasks = {
                       ("configure", "./configure.developer --with-selftest-prefix=./bin/ab" + samba_configure_params, "text/plain"),
                       ("make", "make -j", "text/plain"),
                       ("test", "make test "
-                       "FAIL_IMMEDIATELY=1 "
+                       "_FAIL_IMMEDIATELY=1 "
                        "TESTS='${PY3_ONLY}"
                        "--include-env=none'",
                        "text/plain")],
@@ -267,7 +267,7 @@ tasks = {
                       ("allstatic-configure", "./configure.developer " + samba_configure_params + " --with-static-modules=ALL", "text/plain"),
                       ("allstatic-make", "make -j", "text/plain"),
                       ("allstatic-test", "make test "
-                       "FAIL_IMMEDIATELY=1 "
+                       "_FAIL_IMMEDIATELY=1 "
                        "TESTS='samba3.smb2.create.*nt4_dc'",
                        "text/plain"),
 
@@ -287,7 +287,7 @@ tasks = {
                       ("make", "make -j", "text/plain"),
                       # we currently cannot run a full make test, a limited list of tests could be run
                       # via "make test TESTS=sometests"
-                      ("test", "make test FAIL_IMMEDIATELY=1 "
+                      ("test", "make test _FAIL_IMMEDIATELY=1 "
                        "TESTS='${PY3_ONLY}"
                        "--include-env=ktest'", "text/plain"),
                       ("install", "make install", "text/plain"),
