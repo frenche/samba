@@ -52,8 +52,8 @@ static char *
 primary_create(krb5_dcache *dc)
 {
     char *primary = NULL;
-    int ret = asprintf(&primary, "%s/primary", dc->dir);
-    if (ret == -1 || primary == NULL) {
+    int asprintf_ret = asprintf(&primary, "%s/primary", dc->dir);
+    if (asprintf_ret == -1 || primary == NULL) {
 	return NULL;
     }
 
@@ -75,7 +75,7 @@ set_default_cache(krb5_context context, krb5_dcache *dc, const char *residual)
     struct iovec iov[2];
     size_t len;
     int fd = -1;
-    int ret;
+    int asprintf_ret;
 
     if (!is_filename_cacheish(residual)) {
 	krb5_set_error_message(context, KRB5_CC_FORMAT,
@@ -83,8 +83,8 @@ set_default_cache(krb5_context context, krb5_dcache *dc, const char *residual)
 	return KRB5_CC_FORMAT;
     }
 
-    ret = asprintf(&path, "%s/primary-XXXXXX", dc->dir);
-    if (ret == -1 || path == NULL) {
+    asprintf_ret = asprintf(&path, "%s/primary-XXXXXX", dc->dir);
+    if (asprintf_ret == -1 || path == NULL) {
 	return krb5_enomem(context);
     }
 
@@ -256,6 +256,7 @@ dcc_resolve(krb5_context context, krb5_ccache *id, const char *res)
     krb5_error_code ret;
     krb5_dcache *dc;
     const char *p;
+    int asprintf_ret;
 
     p = res;
     do {
@@ -316,7 +317,6 @@ dcc_resolve(krb5_context context, krb5_ccache *id, const char *res)
     } else {
 	char *residual;
 	size_t len;
-	int ret;
 
 	dc->dir = strdup(res);
 	if (dc->dir == NULL) {
@@ -340,16 +340,16 @@ dcc_resolve(krb5_context context, krb5_ccache *id, const char *res)
 	    dcc_release(context, dc);
 	    return ret;
 	}
-	ret = asprintf(&dc->name, ":%s/%s", dc->dir, residual);
+	asprintf_ret = asprintf(&dc->name, ":%s/%s", dc->dir, residual);
 	free(residual);
-	if (ret == -1 || dc->name == NULL) {
+	if (asprintf_ret == -1 || dc->name == NULL) {
 	    dcc_release(context, dc);
 	    return krb5_enomem(context);
 	}
     }
 
-    ret = asprintf(&filename, "FILE%s", dc->name);
-    if (ret == -1 || filename == NULL) {
+    asprintf_ret = asprintf(&filename, "FILE%s", dc->name);
+    if (asprintf_ret == -1 || filename == NULL) {
 	dcc_release(context, dc);
 	return krb5_enomem(context);
     }
@@ -401,7 +401,7 @@ dcc_gen_new(krb5_context context, krb5_ccache *id)
     krb5_dcache *dc;
     int fd;
     size_t len;
-    int ret;
+    int asprintf_ret;
 
     name = copy_default_dcc_cache(context);
     if (name == NULL) {
@@ -424,8 +424,8 @@ dcc_gen_new(krb5_context context, krb5_ccache *id)
 
     dc = DCACHE((*id));
 
-    ret = asprintf(&name, ":%s/tktXXXXXX", dc->dir);
-    if (ret == -1 || name == NULL) {
+    asprintf_ret = asprintf(&name, ":%s/tktXXXXXX", dc->dir);
+    if (asprintf_ret == -1 || name == NULL) {
 	dcc_close(context, *id);
 	return krb5_enomem(context);
     }

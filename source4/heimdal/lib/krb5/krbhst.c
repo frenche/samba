@@ -357,8 +357,8 @@ krb5_krbhst_format_string(krb5_context context, const krb5_krbhst_info *host,
 	proto = "tcp/";
     else if(host->proto == KRB5_KRBHST_HTTP)
 	proto = "http://";
-    if(host->port != host->def_port) {
-	snprintf(hostname, hostlen, "%s%s%hd", proto, host->hostname, host->port);
+    if (host->port != host->def_port) {
+	snprintf(hostname, hostlen, "%s%s:%d", proto, host->hostname, host->port);
     } else {
 	snprintf(hostname, hostlen, "%s%s", proto, host->hostname);
     }
