@@ -220,8 +220,9 @@ _krb5_evp_iov_cursor_expand(struct _krb5_evp_iov_cursor *cursor)
        return;
 
     while (_krb5_evp_iov_should_encrypt(&cursor->iov[cursor->nextidx])) {
-	if ((char *)cursor->current.data + cursor->current.length
-	    != cursor->iov[cursor->nextidx].data.data) {
+	if (cursor->iov[cursor->nextidx].data.length != 0 &&
+	    ((char *)cursor->current.data + cursor->current.length
+	     != cursor->iov[cursor->nextidx].data.data)) {
             return;
         }
 	cursor->current.length += cursor->iov[cursor->nextidx].data.length;
@@ -237,7 +238,8 @@ static inline void
 _krb5_evp_iov_cursor_nextcrypt(struct _krb5_evp_iov_cursor *cursor)
 {
     for (; cursor->nextidx < cursor->niov; cursor->nextidx++) {
-	if (_krb5_evp_iov_should_encrypt(&cursor->iov[cursor->nextidx])) {
+	if (_krb5_evp_iov_should_encrypt(&cursor->iov[cursor->nextidx])
+	    && cursor->iov[cursor->nextidx].data.length != 0) {
 	    cursor->current = cursor->iov[cursor->nextidx].data;
 	    cursor->nextidx++;
 	    _krb5_evp_iov_cursor_expand(cursor);
@@ -491,12 +493,9 @@ _krb5_evp_encrypt_iov_cts(krb5_context context,
 		remaining -= wholeblocks;
 	    }
 
-	    /* Then steal enough from subsequent iovecs to make a
-	     * whole block.  We need to do this regardless of if there
-	     * is zero data left, for correctness and to avoid a spin
-	     * on remaining > 0
-	     */
-	    if (cursor.current.length < blocksize) {
+	    /* Then, if we have partial data left, steal enough from subsequent
+	     * iovecs to make a whole block */
+	    if (cursor.current.length > 0 && cursor.current.length < blocksize) {
 		if (encryptp && remaining == blocksize)
 		    lastpos = cursor;
 
