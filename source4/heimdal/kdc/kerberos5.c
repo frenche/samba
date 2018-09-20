@@ -687,21 +687,25 @@ pa_enc_ts_validate(kdc_request_t r, const PA_DATA *pa)
 		   "(enctype %s) error %s",
 		   r->client_name, str ? str : "unknown enctype", msg);
 	krb5_free_error_message(r->context, msg);
-	free(str);
 
 	if(hdb_next_enctype2key(r->context, &r->client->entry, NULL,
-				enc_data.etype, &pa_key) == 0)
+				enc_data.etype, &pa_key) == 0) {
+	    free(str);
 	    goto try_next_key;
+	}
 
 	free_EncryptedData(&enc_data);
 
-	if (r->clientdb->hdb_auth_status)
+	if (r->clientdb->hdb_auth_status) {
 		(r->clientdb->hdb_auth_status)(r->context, r->clientdb, r->client,
 					       r->from_addr,
 					       &_kdc_now,
 					       r->client_name,
 					       str ? str : "unknown enctype",
 					       HDB_AUTH_WRONG_PASSWORD);
+	}
+
+	free(str);
 
 	ret = KRB5KDC_ERR_PREAUTH_FAILED;
 	goto out;
