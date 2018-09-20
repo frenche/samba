@@ -231,7 +231,7 @@ static krb5_error_code hdb_samba4_fetch_kvno(krb5_context context, HDB *db,
 
 		is_fast &= (realm != NULL
 			    && strcmp(realm,
-				      KRB5_WELLKNOWN_ORG_H5L_REALM));
+				      KRB5_WELLKNOWN_ORG_H5L_REALM) == 0);
 
 		if (is_fast) {
 			return hdb_samba4_fetch_fast_cookie(context,
