@@ -102,7 +102,8 @@ static int hdb_samba4_fill_fast_cookie(krb5_context context,
 	struct ldb_val val = data_blob_const(secretbuffer,
 					     sizeof(secretbuffer));
 
-	if (msg != NULL) {
+	if (msg == NULL) {
+		DBG_ERR("Failed to allocate msg for new fast cookie\n");
 		return LDB_ERR_OPERATIONS_ERROR;
 	}
 
@@ -120,6 +121,10 @@ static int hdb_samba4_fill_fast_cookie(krb5_context context,
 
 	ldb_ret = ldb_add(kdc_db_ctx->secrets_db,
 			  msg);
+	if (ldb_ret != LDB_SUCCESS) {
+		DBG_ERR("Failed to add fast cookie to ldb: %s\n",
+			ldb_errstring(kdc_db_ctx->secrets_db));
+	}
 	return ldb_ret;
 }
 
@@ -184,6 +189,17 @@ static krb5_error_code hdb_samba4_fetch_fast_cookie(krb5_context context,
 		return HDB_ERR_NOENTRY;
 	}
 
+	
+	ret = krb5_make_principal(context,
+				  &sdb_entry_ex.entry.principal,
+				  KRB5_WELLKNOWN_ORG_H5L_REALM,
+				  KRB5_WELLKNOWN_NAME, "org.h5l.fast-cookie",
+				  NULL);
+	if (ret) {
+		TALLOC_FREE(mem_ctx);
+		return ret;
+	}
+
 	ret = samba_kdc_set_fixed_keys(context, kdc_db_ctx,
 				       val, &sdb_entry_ex);
 	if (ret != 0) {
@@ -210,34 +226,10 @@ static krb5_error_code hdb_samba4_fetch_kvno(krb5_context context, HDB *db,
 	kdc_db_ctx = talloc_get_type_abort(db->hdb_db,
 					   struct samba_kdc_db_context);
 
-	if (flags & HDB_F_GET_CLIENT) {
-		const char *comp0
-			= krb5_principal_get_comp_string(context,
-							 principal,
-							 0);
-		const char *comp1
-			= krb5_principal_get_comp_string(context,
-							 principal,
-							 1);
-		const char *realm
-			= krb5_principal_get_realm(context,
-						   principal);
-		bool is_fast = (comp0 != NULL
-				&& strcmp(comp0,
-					  KRB5_WELLKNOWN_NAME) == 0);
-		is_fast &= (comp1 != NULL
-			    && strcmp(comp1,
-				     "org.h5l.fast-cookie"));
-
-		is_fast &= (realm != NULL
-			    && strcmp(realm,
-				      KRB5_WELLKNOWN_ORG_H5L_REALM) == 0);
-
-		if (is_fast) {
-			return hdb_samba4_fetch_fast_cookie(context,
-							    kdc_db_ctx,
-							    entry_ex);
-		}
+	if (flags & HDB_F_GET_FAST_COOKIE) {
+		return hdb_samba4_fetch_fast_cookie(context,
+						    kdc_db_ctx,
+						    entry_ex);
 	}
 
 	ret = samba_kdc_fetch(context,

@@ -52,7 +52,7 @@ get_fastuser_crypto(kdc_request_t r, krb5_enctype enctype, krb5_crypto *crypto)
 	goto out;
 
     ret = _kdc_db_fetch(r->context, r->config, fast_princ,
-			HDB_F_GET_CLIENT, NULL, NULL, &fast_user);
+			HDB_F_GET_FAST_COOKIE, NULL, NULL, &fast_user);
     krb5_free_principal(r->context, fast_princ);
     if (ret)
 	goto out;
@@ -359,6 +359,7 @@ _kdc_fast_unwrap_request(kdc_request_t r)
     size_t len, size;
     krb5_data data;
     const PA_DATA *pa;
+    krb5uint32 armor_server_kvno;
     int i = 0;
 
     /*
@@ -426,9 +427,11 @@ _kdc_fast_unwrap_request(kdc_request_t r)
 	free_AP_REQ(&ap_req);
 	goto out;
     }
-
+    
+    armor_server_kvno = ap_req.ticket.enc_part.kvno ? *ap_req.ticket.enc_part.kvno : 0;
     ret = _kdc_db_fetch(r->context, r->config, armor_server,
-			HDB_F_GET_SERVER, NULL, NULL, &armor_user);
+			HDB_F_GET_SERVER|HDB_F_GET_KRBTGT,
+			&armor_server_kvno, NULL, &armor_user);
     if(ret == HDB_ERR_NOT_FOUND_HERE) {
 	kdc_log(r->context, r->config, 5,
 		"armor key does not have secrets at this KDC, "
