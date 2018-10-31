@@ -808,8 +808,8 @@ get_cred_kdc_capath_worker(krb5_context context,
 				   *out_creds);
             krb5_free_cred_contents(context, &tgts);
 	    if (ret == 0 &&
-                !krb5_principal_compare(context, in_creds->server,
-                                        (*out_creds)->server)) {
+                !krb5_principal_compare_any_realm(context, in_creds->server,
+                                                  (*out_creds)->server)) {
 		ret = KRB5KDC_ERR_S_PRINCIPAL_UNKNOWN;
 	    }
 	    if (ret == 0 && ok_as_delegate == 0)
@@ -873,8 +873,8 @@ get_cred_kdc_capath_worker(krb5_context context,
 			       in_creds, tgt, impersonate_principal,
 			       second_ticket, *out_creds);
     if (ret == 0 &&
-        !krb5_principal_compare(context, in_creds->server,
-                                    (*out_creds)->server)) {
+        !krb5_principal_compare_any_realm(context, in_creds->server,
+                                          (*out_creds)->server)) {
         krb5_free_cred_contents(context, *out_creds);
         ret = KRB5KDC_ERR_S_PRINCIPAL_UNKNOWN;
     }
