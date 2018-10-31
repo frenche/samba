@@ -964,7 +964,9 @@ static krb5_error_code samba_kdc_message2entry(krb5_context context,
 			goto out;
 		}
 
-		if (smb_krb5_principal_get_type(context, principal) != KRB5_NT_ENTERPRISE_PRINCIPAL) {
+                /* Can we get rid of the if ? */
+		if (smb_krb5_principal_get_type(context, principal) != KRB5_NT_ENTERPRISE_PRINCIPAL ||
+                    (flags & SDB_F_FOR_TGS_REQ)) {
 			/* While we have copied the client principal, tests
 			 * show that Win2k3 returns the 'corrected' realm, not
 			 * the client-specified realm.  This code attempts to
