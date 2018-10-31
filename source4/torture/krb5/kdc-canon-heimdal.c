@@ -2149,7 +2149,10 @@ static bool torture_krb5_as_req_canon(struct torture_context *tctx, const void *
 		}
 		krb5_data_free(&enc_ticket);
 	} else {
-		torture_assert_int_equal(tctx, k5ret, KRB5KDC_ERR_S_PRINCIPAL_UNKNOWN,
+                /* Expect final error from get_cred_kdc_referral() fallback,
+                 * we have already verified in the callbacks that the actual
+                 * returned error was KRB5KDC_ERR_S_PRINCIPAL_UNKNOWN */
+		torture_assert_int_equal(tctx, k5ret, KRB5KDC_ERR_PATH_NOT_ACCEPTED,
 					 assertion_message);
 	}
 
