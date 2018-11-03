@@ -1992,7 +1992,7 @@ static bool torture_krb5_as_req_canon(struct torture_context *tctx, const void *
 	 * krb5_get_creds() needs, so the test fails.
 	 *
 	 */
-	if (test_data->canonicalize == false && test_data->enterprise == false
+	if (k5ret !=0 && test_data->canonicalize == false && test_data->enterprise == false
 	    && (test_data->upper_realm == false || test_data->netbios_realm == true)) {
 		torture_assert_int_equal(tctx, k5ret, KRB5_CC_NOTFOUND,
 					 "krb5_get_creds should have failed with KRB5_CC_NOTFOUND");
