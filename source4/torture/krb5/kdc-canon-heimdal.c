@@ -480,7 +480,7 @@ static bool torture_krb5_pre_send_tgs_req_krbtgt_canon_test(struct torture_krb5_
 
 	torture_assert_int_equal(test_context->tctx,
 				 test_context->tgs_req.req_body.sname->name_type,
-				 KRB5_NT_PRINCIPAL,
+				 KRB5_NT_SRV_INST,
 				 "Mismatch in name_type between request and expected request");
 
 	torture_assert_str_equal(test_context->tctx,
@@ -766,8 +766,8 @@ static bool torture_krb5_pre_send_self_trust_tgs_req_test(struct torture_krb5_co
 					 "Mismatch in realm between request and expected request");
 	}
 	torture_assert_int_equal(test_context->tctx,
-				 test_context->tgs_req.req_body.sname->name_type, KRB5_NT_PRINCIPAL,
-				 "Mismatch in name type between request and expected request, expected  KRB5_NT_PRINCIPAL");
+				 test_context->tgs_req.req_body.sname->name_type, KRB5_NT_SRV_INST,
+				 "Mismatch in name type between request and expected request, expected KRB5_NT_SRV_INST");
 	torture_assert_int_equal(test_context->tctx,
 				 test_context->tgs_req.req_body.sname->name_string.len, 2,
 				 "Mismatch in name between request and expected request, expected krbtgt/realm");
