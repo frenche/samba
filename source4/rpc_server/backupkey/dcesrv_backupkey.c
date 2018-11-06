@@ -42,7 +42,18 @@
 #include <gnutls/crypto.h>
 #include <gnutls/abstract.h>
 
+<<<<<<< HEAD
 #include "lib/crypto/gnutls_helpers.h"
+=======
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+>>>>>>> s4:rpc_server: Allow backupkey to use RC4 and MD5 in FIPS mode
 
 #define DCESRV_INTERFACE_BACKUPKEY_BIND(context, iface) \
 	dcesrv_interface_backupkey_bind(context, iface)
@@ -439,11 +450,16 @@ static WERROR get_and_verify_access_check(TALLOC_CTX *sub_ctx,
 			return WERR_INVALID_DATA;
 		}
 
+		GNUTLS_FIPS140_SET_LAX_MODE();
+
 		gnutls_hash_init(&dig_ctx, GNUTLS_DIG_SHA1);
 		gnutls_hash(dig_ctx,
 			    blob_us.data,
 			    blob_us.length - hash_size);
 		gnutls_hash_deinit(dig_ctx, hash);
+
+		GNUTLS_FIPS140_SET_STRICT_MODE();
+
 		/*
 		 * We free it after the sha1 calculation because blob.data
 		 * point to the same area
@@ -971,11 +987,16 @@ static WERROR self_sign_cert(TALLOC_CTX *mem_ctx,
 		return WERR_INVALID_PARAMETER;
 	}
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	rc = gnutls_x509_crt_privkey_sign(issuer_cert,
 					  issuer_cert,
 					  issuer_privkey,
 					  GNUTLS_DIG_SHA1,
 					  0);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
 	if (rc != GNUTLS_E_SUCCESS) {
 		DBG_ERR("gnutls_x509_crt_privkey_sign failed - %s\n",
 			gnutls_strerror(rc));
@@ -1441,11 +1462,14 @@ static WERROR bkrp_server_wrap_decrypt_data(struct dcesrv_call_state *dce_call, 
 	 * BACKUPKEY_BACKUP_GUID, it really is the whole key
 	 */
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	rc = gnutls_hmac_init(&hmac_hnd,
 			      GNUTLS_MAC_SHA1,
 			      server_key.key,
 			      sizeof(server_key.key));
 	if (rc != GNUTLS_E_SUCCESS) {
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
 
@@ -1454,10 +1478,14 @@ static WERROR bkrp_server_wrap_decrypt_data(struct dcesrv_call_state *dce_call, 
 		    sizeof(decrypt_request.r2));
 
 	if (rc != GNUTLS_E_SUCCESS) {
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
 
 	gnutls_hmac_output(hmac_hnd, symkey);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
 	dump_data_pw("symkey: \n", symkey, sizeof(symkey));
 
 	/* rc4 decrypt sid and secret using sym key */
@@ -1467,11 +1495,14 @@ static WERROR bkrp_server_wrap_decrypt_data(struct dcesrv_call_state *dce_call, 
 	encrypted_blob = data_blob_const(decrypt_request.rc4encryptedpayload,
 					 decrypt_request.ciphertext_length);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	rc = gnutls_cipher_init(&cipher_hnd,
 				GNUTLS_CIPHER_ARCFOUR_128,
 				&cipher_key,
 				NULL);
 	if (rc != GNUTLS_E_SUCCESS) {
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
 	rc = gnutls_cipher_encrypt2(cipher_hnd,
@@ -1480,6 +1511,9 @@ static WERROR bkrp_server_wrap_decrypt_data(struct dcesrv_call_state *dce_call, 
 				    encrypted_blob.data,
 				    encrypted_blob.length);
 	gnutls_cipher_deinit(cipher_hnd);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
 	if (rc != GNUTLS_E_SUCCESS) {
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
@@ -1517,6 +1551,7 @@ static WERROR bkrp_server_wrap_decrypt_data(struct dcesrv_call_state *dce_call, 
 		return WERR_INTERNAL_ERROR;
 	}
 
+<<<<<<< HEAD
 	rc = gnutls_hmac_init(&hmac_hnd,
 			      GNUTLS_MAC_SHA1,
 			      mackey,
@@ -1525,6 +1560,14 @@ static WERROR bkrp_server_wrap_decrypt_data(struct dcesrv_call_state *dce_call, 
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
 
+=======
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
+	gnutls_hmac_init(&hmac_hnd,
+			 GNUTLS_MAC_SHA1,
+			 mackey,
+			 sizeof(mackey));
+>>>>>>> s4:rpc_server: Allow backupkey to use RC4 and MD5 in FIPS mode
 	/* SID field */
 	rc = gnutls_hmac(hmac_hnd,
 			 sid_blob.data,
@@ -1541,7 +1584,12 @@ static WERROR bkrp_server_wrap_decrypt_data(struct dcesrv_call_state *dce_call, 
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
 
+<<<<<<< HEAD
 	gnutls_hmac_deinit(hmac_hnd, mac);
+=======
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
+>>>>>>> s4:rpc_server: Allow backupkey to use RC4 and MD5 in FIPS mode
 	dump_data_pw("mac: \n", mac, sizeof(mac));
 	dump_data_pw("rc4payload.mac: \n", rc4payload.mac, sizeof(rc4payload.mac));
 
@@ -1678,6 +1726,7 @@ static WERROR bkrp_server_wrap_encrypt_data(struct dcesrv_call_state *dce_call, 
 	 * This is *not* the leading 64 bytes, as indicated in MS-BKRP 3.1.4.1.1
 	 * BACKUPKEY_BACKUP_GUID, it really is the whole key
 	 */
+<<<<<<< HEAD
 	rc = gnutls_hmac_init(&hmac_hnd,
 			      GNUTLS_MAC_SHA1,
 			      server_key.key,
@@ -1685,6 +1734,18 @@ static WERROR bkrp_server_wrap_encrypt_data(struct dcesrv_call_state *dce_call, 
 	if (rc != GNUTLS_E_SUCCESS) {
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
+=======
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
+	gnutls_hmac_init(&hmac_hnd,
+			 GNUTLS_MAC_SHA1,
+			 server_key.key,
+			 sizeof(server_key.key));
+	gnutls_hmac(hmac_hnd,
+		    server_side_wrapped.r2,
+		    sizeof(server_side_wrapped.r2));
+	gnutls_hmac_output(hmac_hnd, symkey);
+>>>>>>> s4:rpc_server: Allow backupkey to use RC4 and MD5 in FIPS mode
 
 	rc = gnutls_hmac(hmac_hnd,
 			 server_side_wrapped.r2,
@@ -1706,6 +1767,12 @@ static WERROR bkrp_server_wrap_encrypt_data(struct dcesrv_call_state *dce_call, 
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
 	gnutls_hmac_deinit(hmac_hnd, mackey);
+<<<<<<< HEAD
+=======
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
+>>>>>>> s4:rpc_server: Allow backupkey to use RC4 and MD5 in FIPS mode
 	dump_data_pw("mackey: \n", mackey, sizeof(mackey));
 
 	ndr_err = ndr_push_struct_blob(&sid_blob, mem_ctx, caller_sid,
@@ -1717,6 +1784,7 @@ static WERROR bkrp_server_wrap_encrypt_data(struct dcesrv_call_state *dce_call, 
 	rc4payload.secret_data.data = r->in.data_in;
 	rc4payload.secret_data.length = r->in.data_in_len;
 
+<<<<<<< HEAD
 	rc = gnutls_hmac_init(&hmac_hnd,
 			      GNUTLS_MAC_SHA1,
 			      mackey,
@@ -1725,6 +1793,14 @@ static WERROR bkrp_server_wrap_encrypt_data(struct dcesrv_call_state *dce_call, 
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
 
+=======
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
+	gnutls_hmac_init(&hmac_hnd,
+			 GNUTLS_MAC_SHA1,
+			 mackey,
+			 sizeof(mackey));
+>>>>>>> s4:rpc_server: Allow backupkey to use RC4 and MD5 in FIPS mode
 	/* SID field */
 	rc = gnutls_hmac(hmac_hnd,
 			 sid_blob.data,
@@ -1741,7 +1817,12 @@ static WERROR bkrp_server_wrap_encrypt_data(struct dcesrv_call_state *dce_call, 
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
 
+<<<<<<< HEAD
 	gnutls_hmac_deinit(hmac_hnd, rc4payload.mac);
+=======
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
+>>>>>>> s4:rpc_server: Allow backupkey to use RC4 and MD5 in FIPS mode
 	dump_data_pw("rc4payload.mac: \n", rc4payload.mac, sizeof(rc4payload.mac));
 
 	rc4payload.sid = *caller_sid;
@@ -1756,12 +1837,21 @@ static WERROR bkrp_server_wrap_encrypt_data(struct dcesrv_call_state *dce_call, 
 	cipher_key.data = symkey;
 	cipher_key.size = sizeof(symkey);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	rc = gnutls_cipher_init(&cipher_hnd,
 				GNUTLS_CIPHER_ARCFOUR_128,
 				&cipher_key,
 				NULL);
 	if (rc != GNUTLS_E_SUCCESS) {
+<<<<<<< HEAD
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
+=======
+		GNUTLS_FIPS140_SET_STRICT_MODE();
+		DBG_ERR("gnutls_cipher_init failed - %s\n",
+			gnutls_strerror(rc));
+		return WERR_INVALID_PARAMETER;
+>>>>>>> s4:rpc_server: Allow backupkey to use RC4 and MD5 in FIPS mode
 	}
 	rc = gnutls_cipher_encrypt2(cipher_hnd,
 				    encrypted_blob.data,
@@ -1769,6 +1859,9 @@ static WERROR bkrp_server_wrap_encrypt_data(struct dcesrv_call_state *dce_call, 
 				    encrypted_blob.data,
 				    encrypted_blob.length);
 	gnutls_cipher_deinit(cipher_hnd);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
 	if (rc != GNUTLS_E_SUCCESS) {
 		return gnutls_error_to_werror(rc, WERR_INTERNAL_ERROR);
 	}
