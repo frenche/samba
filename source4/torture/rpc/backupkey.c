@@ -38,6 +38,15 @@
 #include <gnutls/x509.h>
 #include <gnutls/abstract.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 enum test_wrong {
 	WRONG_MAGIC,
 	WRONG_R2,
@@ -296,12 +305,16 @@ static DATA_BLOB *create_access_check(struct torture_context *tctx,
 		 * so we reduce the size of what has to be calculated
 		 */
 
+		GNUTLS_FIPS140_SET_LAX_MODE();
+
 		gnutls_hash_init(&dig_ctx, GNUTLS_DIG_SHA1);
 		gnutls_hash(dig_ctx,
 			    blob->data,
 			    blob->length - sizeof(access_struct.hash));
 		gnutls_hash_deinit(dig_ctx,
 				   blob->data + blob->length - sizeof(access_struct.hash));
+
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 
 		/* Altering the SHA */
 		if (broken) {
@@ -1905,6 +1918,8 @@ static bool test_ServerWrap_encrypt_decrypt_manual(struct torture_context *tctx,
 	 * This is *not* the leading 64 bytes, as indicated in MS-BKRP 3.1.4.1.1
 	 * BACKUPKEY_BACKUP_GUID, it really is the whole key
 	 */
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hmac_init(&hmac_hnd,
 			 GNUTLS_MAC_SHA1,
 			 server_key.key,
@@ -1914,12 +1929,17 @@ static bool test_ServerWrap_encrypt_decrypt_manual(struct torture_context *tctx,
 		    sizeof(server_side_wrapped->r2));
 	gnutls_hmac_output(hmac_hnd, symkey);
 
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
+
 	/* rc4 decrypt sid and secret using sym key */
 	cipher_key.data = symkey;
 	cipher_key.size = sizeof(symkey);
 
 	encrypted_blob = data_blob_talloc(tctx, server_side_wrapped->rc4encryptedpayload,
 					  server_side_wrapped->ciphertext_length);
+
+	GNUTLS_FIPS140_SET_LAX_MODE();
 
 	rc = gnutls_cipher_init(&cipher_hnd,
 				GNUTLS_CIPHER_ARCFOUR_128,
@@ -1939,6 +1959,8 @@ static bool test_ServerWrap_encrypt_decrypt_manual(struct torture_context *tctx,
 				 GNUTLS_E_SUCCESS,
 				 "gnutls_cipher_encrypt failed");
 	gnutls_cipher_deinit(cipher_hnd);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	torture_assert_ndr_err_equal(tctx, ndr_pull_struct_blob(&encrypted_blob, tctx, &rc4payload,
 				       (ndr_pull_flags_fn_t)ndr_pull_bkrp_rc4encryptedpayload),
@@ -1961,6 +1983,8 @@ static bool test_ServerWrap_encrypt_decrypt_manual(struct torture_context *tctx,
 								(ndr_push_flags_fn_t)ndr_push_dom_sid),
 				     NDR_ERR_SUCCESS, "unable to push SID");
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hmac_init(&hmac_hnd,
 			 GNUTLS_MAC_SHA1,
 			 mackey,
@@ -1974,6 +1998,8 @@ static bool test_ServerWrap_encrypt_decrypt_manual(struct torture_context *tctx,
 		    rc4payload.secret_data.data,
 		    rc4payload.secret_data.length);
 	gnutls_hmac_output(hmac_hnd, mac);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	torture_assert_mem_equal(tctx, mac, rc4payload.mac, sizeof(mac), "mac not correct");
 	torture_assert_int_equal(tctx, rc4payload.secret_data.length,
@@ -2032,6 +2058,8 @@ static bool test_ServerWrap_encrypt_decrypt_manual(struct torture_context *tctx,
 	cipher_key.data = symkey;
 	cipher_key.size = sizeof(symkey);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	rc = gnutls_cipher_init(&cipher_hnd,
 				GNUTLS_CIPHER_ARCFOUR_128,
 				&cipher_key,
@@ -2051,6 +2079,7 @@ static bool test_ServerWrap_encrypt_decrypt_manual(struct torture_context *tctx,
 				 "gnutls_cipher_encrypt failed");
 	gnutls_cipher_deinit(cipher_hnd);
 
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	/* re-create server wrap structure */
 
