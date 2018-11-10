@@ -33,6 +33,9 @@
  * SUCH DAMAGE.
  */
 
+#include <send_to_kdc_plugin.h>
+
+#include "krb5_locl.h"
 #include "kuser_locl.h"
 
 #ifdef HAVE_FRAMEWORK_SECURITY
@@ -1211,18 +1214,92 @@ get_switched_ccache(krb5_context context,
     return ret;
 }
 
+static bool off = false;
+static krb5_error_code clear_canon_flag(krb5_context context,
+					void *data,
+					krb5_krbhst_info *hi,
+					time_t timeout,
+					const krb5_data *send_buf,
+					krb5_data *recv_buf)
+{
+	krb5_error_code ret;
+	AS_REQ as_req;
+	size_t used;
+	krb5_data out_buf;
+
+	if(off)
+		return KRB5_PLUGIN_NO_HANDLE;
+
+	ret = decode_AS_REQ(send_buf->data, send_buf->length, &as_req, &used);
+	if (ret == 0) {
+		if (!as_req.req_body.kdc_options.canonicalize)
+			krb5_err(context, 1, 1, "expected canon flag to be set");
+		as_req.req_body.kdc_options.canonicalize = false;
+
+		ASN1_MALLOC_ENCODE(AS_REQ, out_buf.data, out_buf.length,
+				   &as_req, &used, ret);
+		if(ret)
+			krb5_err(context, 1, ret, "asn1 encode failed");
+	} else
+		out_buf = *send_buf;
+
+	off = true;
+
+	const char *s = "SH5.COM";
+
+	ret = krb5_sendto_kdc(context, &out_buf, &s, recv_buf);
+	if (ret)
+		krb5_err(context, 1, ret, "krb5_sendto_kdc");
+
+	off = false;
+
+	return 0;
+}
+
+
+static krb5_error_code
+plugin_init(krb5_context context, void **pctx)
+{
+    *pctx = NULL;
+    return 0;
+}
+
+static void
+plugin_fini(void *ctx)
+{
+}
+
+static krb5_error_code
+plugin_send_to_realm(krb5_context context,
+		     void *ctx,
+		     krb5_const_realm realm,
+		     time_t timeout,
+		     const krb5_data *in,
+		     krb5_data *out)
+{
+	return KRB5_PLUGIN_NO_HANDLE;
+}
+
+static krb5plugin_send_to_kdc_ftable canon_plugin_ftable = {
+       KRB5_PLUGIN_SEND_TO_KDC_VERSION_2,
+       plugin_init,
+       plugin_fini,
+       clear_canon_flag,
+       plugin_send_to_realm
+};
+
 int
 main(int argc, char **argv)
 {
     krb5_error_code ret;
     krb5_context context;
     krb5_ccache  ccache;
-    krb5_principal principal = NULL;
     int optidx = 0;
     krb5_deltat ticket_life = 0;
 #ifdef HAVE_SIGACTION
     struct sigaction sa;
 #endif
+    krb5_principal principal = NULL;
 
     setprogname(argv[0]);
 
@@ -1286,6 +1363,14 @@ main(int argc, char **argv)
     } else {
 	get_princ(context, &principal, argv[0]);
     }
+
+
+    if (!canonicalize_flag && enterprise_flag) {
+	ret = krb5_plugin_register(context, PLUGIN_TYPE_DATA, KRB5_PLUGIN_SEND_TO_KDC, &canon_plugin_ftable);
+	if (ret)
+	    krb5_err(context, 1, ret, "krb5_plugin_register");
+    }
+
 
     if (fcache_version)
 	krb5_set_fcache_version(context, fcache_version);
