@@ -1096,7 +1096,8 @@ $envvarstr
 	    unshift(@term_args, ("bash", "-c"));
 	}
 
-	system(@term, @term_args);
+	#system(@term, @term_args);
+	system("/bin/bash");
 
 	teardown_env($testenv_name);
 } elsif ($opt_list) {
