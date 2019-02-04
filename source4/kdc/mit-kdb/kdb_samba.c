@@ -170,6 +170,8 @@ kdb_vftabl kdb_function_table = {
 	.check_policy_as           = kdb_samba_db_check_policy_as,
 	.audit_as_req              = kdb_samba_db_audit_as_req,
 	.check_allowed_to_delegate = kdb_samba_db_check_allowed_to_delegate,
+	.allowed_to_delegate_from  = kdb_samba_db_allowed_to_delegate_from,
+	.get_authdata_info         = kdb_samba_db_get_authdata_info,
 
 	.free_principal_e_data     = kdb_samba_db_free_principal_e_data,
 };
