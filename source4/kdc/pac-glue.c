@@ -783,8 +783,8 @@ NTSTATUS samba_kdc_update_pac_blob(TALLOC_CTX *mem_ctx,
 NTSTATUS samba_kdc_update_delegation_info_blob(TALLOC_CTX *mem_ctx,
 				krb5_context context,
 				const krb5_pac pac,
-				const krb5_principal server_principal,
-				const krb5_principal proxy_principal,
+				const krb5_principal proxy_target_princ,
+				const krb5_principal deleg_server_princ,
 				DATA_BLOB *new_blob)
 {
 	krb5_data old_data;
@@ -833,26 +833,26 @@ NTSTATUS samba_kdc_update_delegation_info_blob(TALLOC_CTX *mem_ctx,
 	}
 	smb_krb5_free_data_contents(context, &old_data);
 
-	ret = krb5_unparse_name(context, server_principal, &server);
+	ret = krb5_unparse_name_flags(context, proxy_target_princ,
+				      KRB5_PRINCIPAL_UNPARSE_NO_REALM, &proxy);
 	if (ret) {
 		talloc_free(tmp_ctx);
 		return NT_STATUS_INTERNAL_ERROR;
 	}
 
-	ret = krb5_unparse_name_flags(context, proxy_principal,
-				      KRB5_PRINCIPAL_UNPARSE_NO_REALM, &proxy);
+	ret = krb5_unparse_name(context, deleg_server_princ, &server);
 	if (ret) {
-		SAFE_FREE(server);
+		SAFE_FREE(proxy);
 		talloc_free(tmp_ctx);
 		return NT_STATUS_INTERNAL_ERROR;
 	}
 
 	d = info.constrained_delegation.info;
 	i = d->num_transited_services;
-	d->proxy_target.string = server;
+	d->proxy_target.string = proxy;
 	d->transited_services = talloc_realloc(mem_ctx, d->transited_services,
 					       struct lsa_String, i + 1);
-	d->transited_services[i].string = proxy;
+	d->transited_services[i].string = server;
 	d->num_transited_services = i + 1;
 
 	ndr_err = ndr_push_union_blob(new_blob, mem_ctx,

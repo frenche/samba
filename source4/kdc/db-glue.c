@@ -1200,11 +1200,12 @@ static krb5_error_code samba_kdc_trust_message2entry(krb5_context context,
 	struct lsa_TrustDomainInfoInfoEx *tdo = NULL;
 	NTSTATUS status;
 
+	/* XXX
 	if (dsdb_functional_level(kdc_db_ctx->samdb) >= DS_DOMAIN_FUNCTION_2008) {
 		supported_enctypes = ldb_msg_find_attr_as_uint(msg,
 					"msDS-SupportedEncryptionTypes",
 					supported_enctypes);
-	}
+	} */
 
 	status = dsdb_trust_parse_tdo_info(mem_ctx, msg, &tdo);
 	if (!NT_STATUS_IS_OK(status)) {

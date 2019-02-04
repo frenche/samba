@@ -468,6 +468,7 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 				    krb5_context context,
 				    int flags,
 				    krb5_const_principal client_principal,
+				    krb5_const_principal server_princ,
 				    krb5_db_entry *client,
 				    krb5_db_entry *server,
 				    krb5_db_entry *krbtgt,
@@ -604,7 +605,8 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 		}
 	}
 
-	if (flags & KRB5_KDB_FLAG_CONSTRAINED_DELEGATION) {
+	if ((flags & KRB5_KDB_FLAG_CONSTRAINED_DELEGATION) &&
+	    !(flags & KRB5_KDB_FLAG_CROSS_REALM)) {
 		deleg_blob = talloc_zero(tmp_ctx, DATA_BLOB);
 		if (deleg_blob == NULL) {
 			code = ENOMEM;
@@ -614,8 +616,8 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 		nt_status = samba_kdc_update_delegation_info_blob(tmp_ctx,
 								  context,
 								  *pac,
-								  server->princ,
-								  discard_const(client_principal),
+								  server_princ,
+								  client->princ,
 								  deleg_blob);
 		if (!NT_STATUS_IS_OK(nt_status)) {
 			DEBUG(0, ("Update delegation info failed: %s\n",

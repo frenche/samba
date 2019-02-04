@@ -124,6 +124,7 @@ krb5_error_code kdb_samba_dbekd_encrypt_key_data(krb5_context context,
 krb5_error_code kdb_samba_db_sign_auth_data(krb5_context context,
 					    unsigned int flags,
 					    krb5_const_principal client_princ,
+					    krb5_const_principal server_princ,
 					    krb5_db_entry *client,
 					    krb5_db_entry *server,
 					    krb5_db_entry *krbtgt,
@@ -147,6 +148,18 @@ krb5_error_code kdb_samba_db_check_allowed_to_delegate(krb5_context context,
 						       krb5_const_principal client,
 						       const krb5_db_entry *server,
 						       krb5_const_principal proxy);
+
+krb5_error_code
+kdb_samba_db_allowed_to_delegate_from(krb5_context context,
+                                      krb5_const_principal client_princ,
+                                      krb5_const_principal server_princ,
+                                      const krb5_db_entry *proxy);
+
+krb5_error_code kdb_samba_db_get_authdata_info(krb5_context context,
+                                               krb5_boolean xrealm_s4u,
+                                               krb5_authdata **in_authdata,
+                                               krb5_principal *client_out,
+                                               krb5_boolean *not_delegated);
 
 #if KRB5_KDB_API_VERSION >= 9
 void kdb_samba_db_audit_as_req(krb5_context kcontext,

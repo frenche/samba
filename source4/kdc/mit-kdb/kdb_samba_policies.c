@@ -185,9 +185,11 @@ static krb5_error_code ks_get_pac(krb5_context context,
 static krb5_error_code ks_verify_pac(krb5_context context,
 				     unsigned int flags,
 				     krb5_const_principal client_princ,
+				     krb5_const_principal server_princ,
 				     krb5_db_entry *client,
 				     krb5_db_entry *server,
 				     krb5_db_entry *krbtgt,
+				     krb5_keyblock *client_key,
 				     krb5_keyblock *server_key,
 				     krb5_keyblock *krbtgt_key,
 				     krb5_timestamp authtime,
@@ -199,6 +201,8 @@ static krb5_error_code ks_verify_pac(krb5_context context,
 	krb5_pac ipac = NULL;
 	DATA_BLOB logon_data = { NULL, 0 };
 	krb5_error_code code;
+	krb5_keyblock *server_use_key = NULL;
+	krb5_boolean verify_realm = false;
 
 	mit_ctx = ks_get_context(context);
 	if (mit_ctx == NULL) {
@@ -235,44 +239,41 @@ static krb5_error_code ks_verify_pac(krb5_context context,
 		goto done;
 	}
 
-	/* TODO: verify this is correct
-	 *
-	 * In the constrained delegation case, the PAC is from a service
-	 * ticket rather than a TGT; we must verify the server and KDC
-	 * signatures to assert that the server did not forge the PAC.
-	 */
-	if (flags & KRB5_KDB_FLAG_CONSTRAINED_DELEGATION) {
-		code = krb5_pac_verify(context,
-				       ipac,
-				       authtime,
-				       client_princ,
-				       server_key,
-				       krbtgt_key);
-	} else {
-		code = krb5_pac_verify(context,
-				       ipac,
-				       authtime,
-				       client_princ,
-				       krbtgt_key,
-				       NULL);
+	if ((flags & KRB5_KDB_FLAGS_S4U) &&
+	    (flags & KRB5_KDB_FLAG_CROSS_REALM)) {
+		verify_realm = true;
 	}
+
+	if (flags & KRB5_KDB_FLAG_CONSTRAINED_DELEGATION) {
+		server_use_key = client_key;
+	} else {
+		server_use_key = krbtgt_key;
+	}
+
+	code = krb5_pac_verify_ext(context,
+				   ipac,
+				   authtime,
+				   client_princ,
+				   server_use_key,
+				   NULL,
+				   verify_realm);
+
 	if (code != 0) {
 		goto done;
 	}
 
-	/* check and update PAC */
-	code = krb5_pac_parse(context,
-			      authdata[0]->contents,
-			      authdata[0]->length,
-			      pac);
-	if (code != 0) {
+	if (client != NULL && (flags & KRB5_KDB_FLAG_PROTOCOL_TRANSITION)) {
 		goto done;
 	}
+
+	*pac = ipac;
+	ipac = NULL;
 
 	code = mit_samba_reget_pac(mit_ctx,
 				   context,
 				   flags,
 				   client_princ,
+				   server_princ,
 				   client,
 				   server,
 				   krbtgt,
@@ -290,6 +291,7 @@ done:
 krb5_error_code kdb_samba_db_sign_auth_data(krb5_context context,
 					    unsigned int flags,
 					    krb5_const_principal client_princ,
+					    krb5_const_principal server_princ,
 					    krb5_db_entry *client,
 					    krb5_db_entry *server,
 					    krb5_db_entry *krbtgt,
@@ -303,34 +305,28 @@ krb5_error_code kdb_samba_db_sign_auth_data(krb5_context context,
 {
 	krb5_const_principal ks_client_princ;
 	krb5_authdata **authdata = NULL;
-	krb5_boolean is_as_req;
+	krb5_boolean sign_realm = false;
 	krb5_error_code code;
 	krb5_pac pac = NULL;
 	krb5_data pac_data;
 
 	/* Prefer canonicalised name from client entry */
-	if (client != NULL) {
+	if (client != NULL && !(flags & KRB5_KDB_FLAGS_S4U)) {
 		ks_client_princ = client->princ;
 	} else {
 		ks_client_princ = client_princ;
 	}
 
-	is_as_req = ((flags & KRB5_KDB_FLAG_CLIENT_REFERRALS_ONLY) != 0);
-
-	if (is_as_req && (flags & KRB5_KDB_FLAG_INCLUDE_PAC)) {
-		code = ks_get_pac(context, client, client_key, &pac);
-		if (code != 0) {
-			goto done;
-		}
-	}
-
-	if (!is_as_req) {
+	if (!(flags & KRB5_KDB_FLAG_CLIENT_REFERRALS_ONLY) &&
+	    (client == NULL || !(flags & KRB5_KDB_FLAG_PROTOCOL_TRANSITION))) {
 		code = ks_verify_pac(context,
 				     flags,
 				     ks_client_princ,
+				     server_princ,
 				     client,
 				     server,
 				     krbtgt,
+				     client_key,
 				     server_key,
 				     krbtgt_key,
 				     authtime,
@@ -339,10 +335,14 @@ krb5_error_code kdb_samba_db_sign_auth_data(krb5_context context,
 		if (code != 0) {
 			goto done;
 		}
+
+		if (client != NULL &&
+		    (flags & KRB5_KDB_FLAG_PROTOCOL_TRANSITION)) {
+			ks_client_princ = client->princ;
+		}
 	}
 
-	if (pac == NULL && client != NULL) {
-
+	if (pac == NULL) {
 		code = ks_get_pac(context, client, client_key, &pac);
 		if (code != 0) {
 			goto done;
@@ -354,8 +354,14 @@ krb5_error_code kdb_samba_db_sign_auth_data(krb5_context context,
 		goto done;
 	}
 
-	code = krb5_pac_sign(context, pac, authtime, ks_client_princ,
-			server_key, krbtgt_key, &pac_data);
+	if ((flags & KRB5_KDB_FLAGS_S4U) &&
+	    (flags & KRB5_KDB_FLAG_ISSUING_REFERRAL)) {
+		sign_realm = true;
+	}
+
+	code = krb5_pac_sign_ext(context, pac, authtime, ks_client_princ,
+				 server_key, krbtgt_key, sign_realm,
+				 &pac_data);
 	if (code != 0) {
 		DBG_ERR("krb5_pac_sign failed: %d\n", code);
 		goto done;
@@ -436,6 +442,70 @@ done:
 	return code;
 }
 
+krb5_error_code
+kdb_samba_db_allowed_to_delegate_from(krb5_context context,
+                                      krb5_const_principal client_princ,
+                                      krb5_const_principal server_princ,
+                                      const krb5_db_entry *proxy)
+{
+    /* XXX check msDS-AllowedToActOnBehalfOfOtherIdentity */
+    return 0;
+}
+
+krb5_error_code kdb_samba_db_get_authdata_info(krb5_context context,
+                                               krb5_boolean xrealm_s4u,
+                                               krb5_authdata **in_authdata,
+                                               krb5_principal *client_out,
+                                               krb5_boolean *not_delegated)
+{
+    krb5_error_code errcode;
+    krb5_authdata **authdata = NULL;
+    krb5_pac pac = NULL;
+    char *p, *princ_name;
+    int n = 0, flags = 0;
+
+    if (xrealm_s4u) {
+	flags |= KRB5_PRINCIPAL_PARSE_REQUIRE_REALM;
+    }
+
+    *not_delegated = false;
+
+    errcode = krb5_find_authdata(context,
+                                 in_authdata,
+                                 NULL,
+                                 KRB5_AUTHDATA_WIN2K_PAC,
+                                 &authdata);
+    if (errcode != 0 || authdata == NULL)
+        return KRB5KDC_ERR_BADOPTION;
+
+    errcode = krb5_pac_parse(context,
+                             authdata[0]->contents,
+                             authdata[0]->length,
+                             &pac);
+    if (errcode != 0)
+        goto cleanup;
+
+    errcode = krb5_pac_get_client_info(context, pac, NULL, &princ_name);
+    if (errcode != 0)
+        goto cleanup;
+
+    p = princ_name;
+    while(*p++)
+        if (*p == '@')
+            n++;
+
+    if (n == 2)
+        flags |= KRB5_PRINCIPAL_PARSE_ENTERPRISE;
+    //else if (n != 1) error
+
+    errcode = krb5_parse_name_flags(context, princ_name, flags, client_out);
+cleanup:
+    krb5_free_authdata(context, authdata);
+    krb5_pac_free(context, pac);
+    free(princ_name);
+
+    return errcode;
+}
 
 static void samba_bad_password_count(krb5_db_entry *client,
 				     krb5_error_code error_code)
