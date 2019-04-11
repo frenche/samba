@@ -712,6 +712,11 @@ got_connection:
 		goto out;
 	}
 
+	/* Do not allow NTLMSSP in FIPS mode! */
+	if (gnutls_fips140_mode_enabled()) {
+		ads->auth.flags &= ~ADS_AUTH_ALLOW_NTLMSSP;
+	}
+
 	status = ads_sasl_bind(ads);
 
  out:
