@@ -944,6 +944,11 @@ NTSTATUS _netr_ServerAuthenticate3(struct pipes_struct *p,
 			    NETLOGON_NEG_NEUTRALIZE_NT4_EMULATION;
 	}
 
+	/* Do not announce RC4 in FIPS mode */
+	if (gnutls_fips140_mode_enabled()) {
+		srv_flgs &= ~NETLOGON_NEG_ARCFOUR;
+	}
+
 	switch (p->opnum) {
 		case NDR_NETR_SERVERAUTHENTICATE:
 			fn = "_netr_ServerAuthenticate";
