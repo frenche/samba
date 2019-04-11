@@ -40,6 +40,8 @@
 #include "lib/crypto/md4.h"
 #include "auth/credentials/credentials.h"
 
+#include <gnutls/gnutls.h>
+
 struct netlogon_creds_cli_locked_state;
 
 struct netlogon_creds_cli_context {
@@ -415,6 +417,12 @@ NTSTATUS netlogon_creds_cli_context_global(struct loadparm_context *lp_ctx,
 	}
 
 	proposed_flags |= required_flags;
+
+	/* Do not announce RC4 in FIPS mode */
+	if (gnutls_fips140_mode_enabled()) {
+		required_flags &= ~NETLOGON_NEG_ARCFOUR;
+		proposed_flags &= ~NETLOGON_NEG_ARCFOUR;
+	}
 
 	if (seal_secure_channel) {
 		auth_level = DCERPC_AUTH_LEVEL_PRIVACY;
