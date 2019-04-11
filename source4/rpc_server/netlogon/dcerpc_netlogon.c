@@ -45,6 +45,8 @@
 #include "rpc_server/common/sid_helper.h"
 #include "lib/util/util_str_escape.h"
 
+#include <gnutls/gnutls.h>
+
 #define DCESRV_INTERFACE_NETLOGON_BIND(context, iface) \
        dcesrv_interface_netlogon_bind(context, iface)
 
@@ -221,6 +223,10 @@ static NTSTATUS dcesrv_netr_ServerAuthenticate3_helper(
 		       NETLOGON_NEG_SUPPORTS_AES |
 		       NETLOGON_NEG_AUTHENTICATED_RPC_LSASS |
 		       NETLOGON_NEG_AUTHENTICATED_RPC;
+
+	if (gnutls_fips140_mode_enabled()) {
+		server_flags &= ~NETLOGON_NEG_ARCFOUR;
+	}
 
 	negotiate_flags = *r->in.negotiate_flags & server_flags;
 
