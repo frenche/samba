@@ -4608,6 +4608,15 @@ int lp_client_max_protocol(void)
 int lp_client_ipc_min_protocol(void)
 {
 	int client_ipc_min_protocol = lp__client_ipc_min_protocol();
+
+	/*
+	 * If we're in FIPS mode use at least SMB3.03 to get an AES encrypted
+	 * DCERPC transport.
+	 */
+	if (gnutls_fips140_mode_enabled()) {
+		return PROTOCOL_SMB3_00;
+	}
+
 	if (client_ipc_min_protocol == PROTOCOL_DEFAULT) {
 		client_ipc_min_protocol = lp_client_min_protocol();
 	}
