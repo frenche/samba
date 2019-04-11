@@ -420,6 +420,13 @@ struct netlogon_creds_CredentialState *netlogon_creds_client_init(TALLOC_CTX *me
 		return NULL;
 	}
 
+	/* Only allow AES in FIPS mode */
+	if (gnutls_fips140_mode_enabled() &&
+	    !(negotiate_flags & NETLOGON_NEG_SUPPORTS_AES)) {
+		talloc_free(creds);
+		return NULL;
+	}
+
 	creds->sequence = time(NULL);
 	creds->negotiate_flags = negotiate_flags;
 	creds->secure_channel_type = secure_channel_type;
@@ -582,6 +589,13 @@ struct netlogon_creds_CredentialState *netlogon_creds_server_init(TALLOC_CTX *me
 	struct netlogon_creds_CredentialState *creds = talloc_zero(mem_ctx, struct netlogon_creds_CredentialState);
 
 	if (!creds) {
+		return NULL;
+	}
+
+	/* Only allow AES in FIPS mode */
+	if (gnutls_fips140_mode_enabled() &&
+	    !(negotiate_flags & NETLOGON_NEG_SUPPORTS_AES)) {
+		talloc_free(creds);
 		return NULL;
 	}
 
