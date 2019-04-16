@@ -1614,6 +1614,10 @@ static bool lp_add_ipc(const char *ipc_name, bool guest_ok)
 	ServicePtrs[i]->browseable = sDefault.browseable;
 	ServicePtrs[i]->autoloaded = false;
 
+	if (gnutls_fips140_mode_enabled()) {
+		ServicePtrs[i]->smb_encrypt = SMB_SIGNING_REQUIRED;
+	}
+
 	DEBUG(3, ("adding IPC service\n"));
 
 	TALLOC_FREE(comment);
