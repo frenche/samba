@@ -72,6 +72,7 @@
 #include "librpc/gen_ndr/nbt.h"
 #include "source4/lib/tls/tls.h"
 #include "libcli/auth/ntlm_check.h"
+#include "lib/crypto/gnutls_helpers.h"
 
 #ifdef HAVE_SYS_SYSCTL_H
 #include <sys/sysctl.h>
@@ -1613,6 +1614,10 @@ static bool lp_add_ipc(const char *ipc_name, bool guest_ok)
 	ServicePtrs[i]->printable = false;
 	ServicePtrs[i]->browseable = sDefault.browseable;
 	ServicePtrs[i]->autoloaded = false;
+
+	if (gnutls_fips140_mode_enabled()) {
+		ServicePtrs[i]->smb_encrypt = SMB_SIGNING_REQUIRED;
+	}
 
 	DEBUG(3, ("adding IPC service\n"));
 
