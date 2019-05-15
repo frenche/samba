@@ -33,7 +33,13 @@ NTSTATUS init_samr_CryptPasswordEx(const char *pwd,
 				   DATA_BLOB *session_key,
 				   struct samr_CryptPasswordEx *pwd_buf)
 {
-	return encode_rc4_passwd_buffer(pwd, session_key, pwd_buf);
+	NTSTATUS status;
+
+	GNUTLS_FIPS140_SET_LAX_MODE();
+	status = encode_rc4_passwd_buffer(pwd, session_key, pwd_buf);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
+	return status;
 }
 
 /*************************************************************************
