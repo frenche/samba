@@ -59,6 +59,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #ifndef ALLOW_CHANGE_PASSWORD
 #if (defined(HAVE_TERMIOS_H) && defined(HAVE_DUP2) && defined(HAVE_SETSID))
 #define ALLOW_CHANGE_PASSWORD 1
@@ -764,11 +773,13 @@ static NTSTATUS check_oem_password(const char *user,
 		.size = 16,
 	};
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	rc = gnutls_cipher_init(&cipher_hnd,
 				GNUTLS_CIPHER_ARCFOUR_128,
 				&enc_key,
 				NULL);
 	if (rc < 0) {
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 		return gnutls_error_to_ntstatus(rc, NT_STATUS_CRYPTO_SYSTEM_INVALID);
 	}
 
@@ -776,6 +787,7 @@ static NTSTATUS check_oem_password(const char *user,
 				   password_encrypted,
 				   516);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	if (rc < 0) {
 		return gnutls_error_to_ntstatus(rc, NT_STATUS_CRYPTO_SYSTEM_INVALID);
 	}
