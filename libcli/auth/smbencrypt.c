@@ -1041,10 +1041,12 @@ WERROR decode_wkssvc_join_password_buffer(TALLOC_CTX *mem_ctx,
 	confounder = data_blob_const(&pwd_buf->data[0], 8);
 	memcpy(&pwbuf, &pwd_buf->data[8], 516);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	rc = samba_gnutls_arcfour_confounded_md5(session_key,
 						 &confounder,
 						 &decrypt_pwbuf,
 						 SAMBA_GNUTLS_ENCRYPT);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	if (rc < 0) {
 		ZERO_ARRAY(_confounder);
 		TALLOC_FREE(pwd_buf);
