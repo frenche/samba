@@ -36,6 +36,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #define TEST_MACHINE_NAME "ntpsigndtest"
 
 struct signd_client_state {
@@ -271,12 +280,16 @@ static bool test_ntp_signd(struct torture_context *tctx,
 				 "Incorrect RID in reply");
 
 	/* Check computed signature */
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hash_init(&hash_hnd, GNUTLS_DIG_MD5);
 	gnutls_hash(hash_hnd, pwhash->hash, sizeof(pwhash->hash));
 	gnutls_hash(hash_hnd,
 		    sign_req.packet_to_sign.data,
 		    sign_req.packet_to_sign.length);
 	gnutls_hash_deinit(hash_hnd, sig);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	torture_assert_mem_equal(tctx,
 				 &signed_reply.signed_packet.data[sign_req.packet_to_sign.length + 4],
