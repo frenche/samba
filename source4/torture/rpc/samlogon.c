@@ -34,6 +34,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #define TEST_MACHINE_NAME "samlogontest"
 #define TEST_USER_NAME "samlogontestuser"
 #define TEST_USER_NAME_WRONG_WKS "samlogontest2"
@@ -1130,10 +1139,14 @@ static bool test_ntlm2(struct samlogon_state *samlogon_state, char **error_strin
 	ZERO_STRUCT(lm_key);
 	generate_random_buffer(client_chall, 8);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hash_init(&hash_hnd, GNUTLS_DIG_MD5);
 	gnutls_hash(hash_hnd, samlogon_state->chall.data, 8);
 	gnutls_hash(hash_hnd, client_chall, 8);
 	gnutls_hash_deinit(hash_hnd, session_nonce_hash);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	E_md4hash(samlogon_state->password, (uint8_t *)nt_hash);
 	lm_good = E_deshash(samlogon_state->password, (uint8_t *)lm_hash);
@@ -1145,6 +1158,8 @@ static bool test_ntlm2(struct samlogon_state *samlogon_state, char **error_strin
 	memcpy(lm_response.data, session_nonce_hash, 8);
 	memset(lm_response.data + 8, 0, 16);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hmac_init(&hmac_hnd,
 			 GNUTLS_MAC_MD5,
 			 nt_key,
@@ -1152,6 +1167,8 @@ static bool test_ntlm2(struct samlogon_state *samlogon_state, char **error_strin
 	gnutls_hmac(hmac_hnd, samlogon_state->chall.data, 8);
 	gnutls_hmac(hmac_hnd, client_chall, 8);
 	gnutls_hmac_deinit(hmac_hnd, expected_user_session_key);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	nt_status = check_samlogon(samlogon_state,
 				   BREAK_NONE,
