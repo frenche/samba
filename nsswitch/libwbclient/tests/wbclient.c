@@ -37,6 +37,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #define WBC_ERROR_EQUAL(x,y) (x == y)
 
 #define torture_assert_wbc_equal(torture_ctx, got, expected, cmt, cmt_arg)	\
@@ -844,6 +853,8 @@ static bool test_wbc_change_password(struct torture_context *tctx)
 
 		encode_pw_buffer(new_lm_password.data, newpass, STR_UNICODE);
 
+		GNUTLS_FIPS140_SET_LAX_MODE();
+
 		gnutls_cipher_init(&cipher_hnd,
 				   GNUTLS_CIPHER_ARCFOUR_128,
 				   &old_nt_key,
@@ -852,6 +863,8 @@ static bool test_wbc_change_password(struct torture_context *tctx)
 				      new_lm_password.data,
 				      516);
 		gnutls_cipher_deinit(cipher_hnd);
+
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 
 		E_old_pw_hash(new_nt_hash, old_lanman_hash,
 			      old_lanman_hash_enc.hash);
@@ -871,6 +884,8 @@ static bool test_wbc_change_password(struct torture_context *tctx)
 
 	encode_pw_buffer(new_nt_password.data, newpass, STR_UNICODE);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &old_nt_key,
@@ -879,6 +894,8 @@ static bool test_wbc_change_password(struct torture_context *tctx)
 			      new_nt_password.data,
 			      516);
 	gnutls_cipher_deinit(cipher_hnd);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	E_old_pw_hash(new_nt_hash, old_nt_hash, old_nt_hash_enc.hash);
 
