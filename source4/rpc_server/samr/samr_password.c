@@ -36,6 +36,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 static void log_password_change_event(struct imessaging_context *msg_ctx,
 				      struct loadparm_context *lp_ctx,
 				      const struct tsocket_address *remote_client_address,
@@ -674,10 +683,12 @@ NTSTATUS samr_set_password_ex(struct dcesrv_call_state *dce_call,
 		return NT_STATUS_WRONG_PASSWORD;
 	}
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	rc = samba_gnutls_arcfour_confounded_md5(&confounder,
 						 &session_key,
 						 &pw_data,
 						 SAMBA_GNUTLS_DECRYPT);
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	if (rc < 0) {
 		nt_status = gnutls_error_to_ntstatus(rc, NT_STATUS_HASH_NOT_SUPPORTED);
 		goto out;
@@ -706,6 +717,8 @@ NTSTATUS samr_set_password_ex(struct dcesrv_call_state *dce_call,
 		       new_password.length);
 
 out:
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
 	return nt_status;
 }
 
