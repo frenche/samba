@@ -54,6 +54,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #undef DBGC_CLASS
 #define DBGC_CLASS DBGC_RPC_SRV
 
@@ -1700,6 +1709,7 @@ static NTSTATUS get_trustdom_auth_blob(struct pipes_struct *p,
 		.size = lsession_key.length,
 	};
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	rc = gnutls_cipher_init(&cipher_hnd,
 				GNUTLS_CIPHER_ARCFOUR_128,
 				&my_session_key,
@@ -1713,6 +1723,7 @@ static NTSTATUS get_trustdom_auth_blob(struct pipes_struct *p,
 				   auth_blob->data,
 				   auth_blob->length);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	if (rc < 0) {
 		status = gnutls_error_to_ntstatus(rc, NT_STATUS_CRYPTO_SYSTEM_INVALID);
 		goto out;
@@ -1728,6 +1739,7 @@ static NTSTATUS get_trustdom_auth_blob(struct pipes_struct *p,
 
 	status = NT_STATUS_OK;
 out:
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	return status;
 }
 
