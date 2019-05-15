@@ -859,10 +859,12 @@ NTSTATUS encode_rc4_passwd_buffer(const char *passwd,
 
 	generate_random_buffer(confounder.data, confounder.length);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	rc = samba_gnutls_arcfour_confounded_md5(&confounder,
 						 session_key,
 						 &pw_data,
 						 SAMBA_GNUTLS_ENCRYPT);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	if (rc < 0) {
 		ZERO_ARRAY(_confounder);
 		data_blob_clear(&pw_data);
@@ -893,10 +895,12 @@ NTSTATUS decode_rc4_passwd_buffer(const DATA_BLOB *psession_key,
 	DATA_BLOB pw_data = data_blob_const(&inout_crypt_pwd->data, 516);
 	int rc;
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	rc = samba_gnutls_arcfour_confounded_md5(&confounder,
 						 psession_key,
 						 &pw_data,
 						 SAMBA_GNUTLS_DECRYPT);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	if (rc < 0) {
 		return gnutls_error_to_ntstatus(rc, NT_STATUS_ACCESS_DISABLED_BY_POLICY_OTHER);
 	}
