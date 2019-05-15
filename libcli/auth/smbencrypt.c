@@ -32,6 +32,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 void SMBencrypt_hash(const uint8_t lm_hash[16], const uint8_t *c8, uint8_t p24[24])
 {
 	uint8_t p21[21];
@@ -106,6 +115,8 @@ void E_md5hash(const uint8_t salt[16], const uint8_t nthash[16], uint8_t hash_ou
 	gnutls_hash_hd_t hash_hnd = NULL;
 	int rc;
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	rc = gnutls_hash_init(&hash_hnd, GNUTLS_DIG_MD5);
 	if (rc < 0) {
 		goto out;
@@ -124,6 +135,7 @@ void E_md5hash(const uint8_t salt[16], const uint8_t nthash[16], uint8_t hash_ou
 	gnutls_hash_deinit(hash_hnd, hash_out);
 
 out:
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	return;
 }
 
