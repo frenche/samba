@@ -993,10 +993,12 @@ WERROR encode_wkssvc_join_password_buffer(TALLOC_CTX *mem_ctx,
 
 	generate_random_buffer(_confounder, sizeof(_confounder));
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	rc = samba_gnutls_arcfour_confounded_md5(session_key,
 						 &confounder,
 						 &encrypt_pwbuf,
 						 SAMBA_GNUTLS_ENCRYPT);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	if (rc < 0) {
 		ZERO_ARRAY(_confounder);
 		TALLOC_FREE(pwd_buf);
