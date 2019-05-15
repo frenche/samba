@@ -32,6 +32,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 static uint32_t msg_pong;
 
 static void ping_message(struct imessaging_context *msg,
@@ -271,7 +280,11 @@ static void overflow_md5_child_handler(struct imessaging_context *msg,
 		return;
 	}
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hash(state->md5_hash_hnd, data->data, data->length);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 }
 
 struct overflow_child_parent {
@@ -333,7 +346,11 @@ static bool test_messaging_overflow_check(struct torture_context *tctx)
 		ret = tevent_re_initialise(tctx->ev);
 		torture_assert(tctx, ret == 0, "tevent_re_initialise failed");
 
+		GNUTLS_FIPS140_SET_LAX_MODE();
+
 		gnutls_hash_init(&child_state.md5_hash_hnd, GNUTLS_DIG_MD5);
+
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 
 		msg_ctx = imessaging_init(tctx, tctx->lp_ctx,
 					  cluster_id(getpid(), 0),
@@ -362,7 +379,11 @@ static bool test_messaging_overflow_check(struct torture_context *tctx)
 			tevent_loop_once(tctx->ev);
 		}
 
+		GNUTLS_FIPS140_SET_LAX_MODE();
+
 		gnutls_hash_deinit(child_state.md5_hash_hnd, final);
+
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 
 		status = imessaging_send(msg_ctx,
 					 cluster_id(getppid(), 0),
@@ -390,7 +411,11 @@ static bool test_messaging_overflow_check(struct torture_context *tctx)
 		       NT_STATUS_IS_OK(status),
 		       "imessaging_register failed");
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hash_init(&hash_hnd, GNUTLS_DIG_MD5);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	for (i=0; i<1000; i++) {
 		size_t len = ((random() % 100) + 1);
@@ -412,7 +437,11 @@ static bool test_messaging_overflow_check(struct torture_context *tctx)
 	torture_assert_ntstatus_ok(tctx, status,
 				   "imessaging_send failed");
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hash_deinit(hash_hnd, final);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	do {
 		nwritten = write(down_pipe[1], &c, 1);
