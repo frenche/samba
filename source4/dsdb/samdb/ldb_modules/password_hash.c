@@ -51,6 +51,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #ifdef ENABLE_GPGME
 #undef class
 #include <gpgme.h>
@@ -1372,6 +1381,8 @@ static int setup_primary_wdigest(struct setup_password_fields_io *io,
 	for (i=0; i < ARRAY_SIZE(wdigest); i++) {
 		gnutls_hash_hd_t hash_hnd = NULL;
 
+		GNUTLS_FIPS140_SET_LAX_MODE();
+
 		rc = gnutls_hash_init(&hash_hnd, GNUTLS_DIG_MD5);
 		if (rc < 0) {
 			rc = ldb_oom(ldb);
@@ -1436,10 +1447,13 @@ static int setup_primary_wdigest(struct setup_password_fields_io *io,
 		}
 
 		gnutls_hash_deinit(hash_hnd, pdb->hashes[i].hash);
+
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 	}
 
 	rc = LDB_SUCCESS;
 out:
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	return rc;
 }
 
