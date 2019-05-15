@@ -54,6 +54,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 extern char *optarg;
 extern int optind;
 
@@ -11452,10 +11461,14 @@ static bool run_cli_splice(int dummy)
 	generate_random_buffer(buf, file_size);
 
 	/* MD5 the first 1MB + 713 bytes. */
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hash_fast(GNUTLS_DIG_MD5,
 			 buf,
 			 splice_size,
 			 digest1);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	status = cli_writeall(cli1,
 			      fnum1,
@@ -11512,10 +11525,14 @@ static bool run_cli_splice(int dummy)
 	}
 
 	/* MD5 the first 1MB + 713 bytes. */
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	gnutls_hash_fast(GNUTLS_DIG_MD5,
 			 buf,
 			 splice_size,
 			 digest2);
+
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	/* Must be the same. */
 	if (memcmp(digest1, digest2, 16) != 0) {
