@@ -38,6 +38,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #define DCESRV_INTERFACE_LSARPC_BIND(context, iface) \
        dcesrv_interface_lsarpc_bind(context, iface)
 static NTSTATUS dcesrv_interface_lsarpc_bind(struct dcesrv_connection_context *context,
@@ -880,6 +889,7 @@ static NTSTATUS get_trustdom_auth_blob(struct dcesrv_call_state *dce_call,
 		.size = session_key.length,
 	};
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	rc = gnutls_cipher_init(&cipher_hnd,
 				GNUTLS_CIPHER_ARCFOUR_128,
 				&_session_key,
@@ -893,6 +903,7 @@ static NTSTATUS get_trustdom_auth_blob(struct dcesrv_call_state *dce_call,
 				   auth_blob->data,
 				   auth_blob->length);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	if (rc < 0) {
 		nt_status = gnutls_error_to_ntstatus(rc, NT_STATUS_CRYPTO_SYSTEM_INVALID);
 		goto out;
@@ -907,6 +918,8 @@ static NTSTATUS get_trustdom_auth_blob(struct dcesrv_call_state *dce_call,
 
 	nt_status = NT_STATUS_OK;
 out:
+	GNUTLS_FIPS140_SET_STRICT_MODE();
+
 	return nt_status;
 }
 
