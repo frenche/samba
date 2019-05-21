@@ -34,6 +34,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #define TEST_DOM "torturedom"
 #define TEST_DOM_DNS "torturedom.samba.example.com"
 #define TEST_DOM_SID "S-1-5-21-97398-379795-10000"
@@ -718,6 +727,7 @@ static bool test_setup_trust(struct torture_context *tctx,
 		.size = session_key.length,
 	};
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &_session_key,
@@ -726,6 +736,7 @@ static bool test_setup_trust(struct torture_context *tctx,
 			      authinfo.auth_blob.data,
 			      authinfo.auth_blob.size);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	if (!test_create_trust_and_set_info(p, tctx, netbios_name,
 					    dns_name, sid, &authinfo)) {
