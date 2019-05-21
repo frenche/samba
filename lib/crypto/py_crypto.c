@@ -25,6 +25,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 static PyObject *py_crypto_arcfour_crypt_blob(PyObject *module, PyObject *args)
 {
 	DATA_BLOB data;
@@ -61,11 +70,14 @@ static PyObject *py_crypto_arcfour_crypt_blob(PyObject *module, PyObject *args)
 		.size = PyBytes_Size(py_key),
 	};
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
+
 	rc = gnutls_cipher_init(&cipher_hnd,
 				GNUTLS_CIPHER_ARCFOUR_128,
 				&key,
 				NULL);
 	if (rc < 0) {
+		GNUTLS_FIPS140_SET_STRICT_MODE();
 		talloc_free(ctx);
 		PyErr_Format(PyExc_OSError, "encryption failed");
 		return NULL;
@@ -74,6 +86,7 @@ static PyObject *py_crypto_arcfour_crypt_blob(PyObject *module, PyObject *args)
 				   data.data,
 				   data.length);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	if (rc < 0) {
 		talloc_free(ctx);
 		PyErr_Format(PyExc_OSError, "encryption failed");
