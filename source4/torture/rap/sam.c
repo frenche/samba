@@ -32,6 +32,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #define TEST_RAP_USER "torture_rap_user"
 
 static char *samr_rand_pass(TALLOC_CTX *mem_ctx, int min_len)
@@ -152,6 +161,7 @@ static bool test_oemchangepassword_args(struct torture_context *tctx,
 
 	encode_pw_buffer(r.in.crypt_password, newpass, STR_ASCII);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &pw_key,
@@ -160,6 +170,7 @@ static bool test_oemchangepassword_args(struct torture_context *tctx,
 			      r.in.crypt_password,
 			      516);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	E_old_pw_hash(new_pw_hash, old_pw_hash, r.in.password_hash);
 
 	torture_comment(tctx, "Testing rap_NetOEMChangePassword(%s)\n", r.in.UserName);
