@@ -40,6 +40,15 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 
+/* Those macros are only available in GnuTLS >= 3.6.4 */
+#ifndef GNUTLS_FIPS140_SET_LAX_MODE
+#define GNUTLS_FIPS140_SET_LAX_MODE()
+#endif
+
+#ifndef GNUTLS_FIPS140_SET_STRICT_MODE
+#define GNUTLS_FIPS140_SET_STRICT_MODE()
+#endif
+
 #define TEST_MACHINENAME "lsatestmach"
 #define TRUSTPW "12345678"
 
@@ -2741,6 +2750,7 @@ static bool gen_authinfo_internal(TALLOC_CTX *mem_ctx,
 		.size = session_key.length,
 	};
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &_session_key,
@@ -2749,6 +2759,7 @@ static bool gen_authinfo_internal(TALLOC_CTX *mem_ctx,
 			      auth_blob.data,
 			      auth_blob.length);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	authinfo_internal->auth_blob.size = auth_blob.length;
 	authinfo_internal->auth_blob.data = auth_blob.data;
