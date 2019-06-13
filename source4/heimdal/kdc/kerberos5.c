@@ -948,6 +948,31 @@ _kdc_is_anonymous(krb5_context context, krb5_principal principal)
     return 1;
 }
 
+static krb5_error_code
+get_local_tgs(krb5_context context,
+             krb5_kdc_configuration *config,
+             const char *realm,
+             hdb_entry_ex **entry)
+{
+    krb5_error_code ret;
+    krb5_principal krbtgt_princ;
+
+    ret = krb5_make_principal(context,
+                              &krbtgt_princ,
+                              realm,
+                              KRB5_TGS_NAME,
+                              realm,
+                              NULL);
+    if (ret)
+       return ret;
+
+    ret = _kdc_db_fetch(context, config, krbtgt_princ,
+                       HDB_F_GET_KRBTGT, NULL, NULL, entry);
+    krb5_free_principal(context, krbtgt_princ);
+
+    return ret;
+}
+
 /*
  *
  */
@@ -983,6 +1008,9 @@ _kdc_as_rep(krb5_context context,
     pk_client_params *pkp = NULL;
 #endif
     const EncryptionKey *pk_reply_key = NULL;
+    hdb_entry_ex *local_tgs = NULL;
+    krb5_enctype local_tgs_etype;
+    Key *tkey;
 
     memset(&rep, 0, sizeof(rep));
     memset(&session_key, 0, sizeof(session_key));
@@ -1463,6 +1491,20 @@ _kdc_as_rep(krb5_context context,
     if(ret)
 	goto out;
 
+    tkey = skey;
+    /* If the server is not krbtgt, fetch local krbtgt key to sign authdata */
+    if (!krb5_principal_is_krbtgt(context, server_princ)) {
+       ret = get_local_tgs(context, config, client_princ->realm, &local_tgs);
+       if (ret)
+           goto out;
+
+       ret = _kdc_get_preferred_key(context, config,
+                                    local_tgs, client_princ->realm,
+                                    &local_tgs_etype, &tkey);
+       if(ret)
+           goto out;
+    }
+
     if(f.renew || f.validate || f.proxy || f.forwarded || f.enc_tkt_in_skey
        || (f.request_anonymous && !config->allow_anonymous)) {
 	ret = KRB5KDC_ERR_BADOPTION;
@@ -1723,7 +1765,7 @@ _kdc_as_rep(krb5_context context,
 	    ret = _krb5_pac_sign(context, p, et.authtime,
 				 client->entry.principal,
 				 &skey->key, /* Server key */
-				 &skey->key, /* FIXME: should be krbtgt key */
+				 &tkey->key, /* krbtgt key */
 				 &data);
 	    krb5_pac_free(context, p);
 	    if (ret) {
@@ -1804,6 +1846,8 @@ out:
 	_kdc_free_ent(context, client);
     if(server)
 	_kdc_free_ent(context, server);
+    if (local_tgs)
+	_kdc_free_ent(context, local_tgs);
     return ret;
 }
 
