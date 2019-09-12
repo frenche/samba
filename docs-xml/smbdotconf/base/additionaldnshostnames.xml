@@ -1,0 +1,12 @@
+<samba:parameter name="additional dns hostnames"
+                 context="G"
+                 type="cmdlist"
+                 handler="handle_additional_dns_hostnames"
+                 xmlns:samba="http://www.samba.org/samba/DTD/samba-doc">
+ <description>
+        <para> A list of additional DNS names by which this host can be identified
+        </para>
+</description>
+<value type="default"><comment>empty string (no additional dns names)</comment></value>
+<value type="example"> host2.example.com host3.example.com </value>
+</samba:parameter>

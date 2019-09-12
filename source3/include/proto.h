@@ -312,6 +312,9 @@ struct passwd *Get_Pwnam_alloc(TALLOC_CTX *mem_ctx, const char *user);
 const char *get_global_sam_name(void);
 const char *my_sam_name(void);
 
+const char *my_additional_dns_hostnames(int i);
+bool set_additional_dns_hostnames(const char **str_array);
+
 /* The following definitions come from lib/util.c  */
 
 enum protocol_types get_Protocol(void);

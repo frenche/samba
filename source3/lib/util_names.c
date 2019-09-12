@@ -74,6 +74,44 @@ static bool set_my_netbios_names(const char *name, int i)
 	return strupper_m(smb_my_netbios_names[i]);
 }
 
+static int smb_num_additional_dns_hostnames;
+static char **smb_my_additional_dns_hostnames;
+
+static void free_additional_dns_hostnames_array(void)
+{
+	int i;
+
+	for (i = 0; i < smb_num_additional_dns_hostnames; i++)
+		SAFE_FREE(smb_my_additional_dns_hostnames[i]);
+
+	SAFE_FREE(smb_my_additional_dns_hostnames);
+	smb_num_additional_dns_hostnames = 0;
+}
+
+static bool allocate_my_additional_dns_hostnames_array(size_t number)
+{
+	free_additional_dns_hostnames_array();
+
+	smb_num_additional_dns_hostnames = number + 1;
+	smb_my_additional_dns_hostnames = SMB_MALLOC_ARRAY( char *, smb_num_additional_dns_hostnames );
+
+	if (!smb_my_additional_dns_hostnames)
+		return False;
+
+	memset(smb_my_additional_dns_hostnames, '\0', sizeof(char *) * smb_num_additional_dns_hostnames);
+	return True;
+}
+
+static bool set_my_additional_dns_hostnames(const char *name, int i)
+{
+	SAFE_FREE(smb_my_additional_dns_hostnames[i]);
+
+	smb_my_additional_dns_hostnames[i] = SMB_STRNDUP(name, MAX_ADDLHOSTNAME_LEN-1);
+	if (!smb_my_additional_dns_hostnames[i])
+		return False;
+	return strupper_m(smb_my_additional_dns_hostnames[i]);
+}
+
 /***********************************************************************
  Free memory allocated to global objects
 ***********************************************************************/
@@ -81,6 +119,7 @@ static bool set_my_netbios_names(const char *name, int i)
 void gfree_names(void)
 {
 	free_netbios_names_array();
+	free_additional_dns_hostnames_array();
 	free_local_machine_name();
 }
 
@@ -134,6 +173,48 @@ bool set_netbios_aliases(const char **str_array)
 	return True;
 }
 
+const char *my_additional_dns_hostnames(int i)
+{
+	return smb_my_additional_dns_hostnames[i];
+}
+
+bool set_additional_dns_hostnames(const char **str_array)
+{
+	size_t namecount;
+
+	/* Work out the max number of additional_dns_hostnames that we have */
+	for( namecount=0; str_array && (str_array[namecount] != NULL); namecount++ )
+		;
+
+	/* Allocate space for the additional_dns_hostnames  */
+	if (!allocate_my_additional_dns_hostnames_array(namecount))
+		return False;
+
+	namecount=0;
+	if (str_array) {
+		size_t i;
+		for ( i = 0; str_array[i] != NULL; i++) {
+			size_t n;
+			bool duplicate = False;
+
+			/* Look for duplicates */
+			for( n=0; n<namecount; n++ ) {
+				if( strequal( str_array[i], my_additional_dns_hostnames(n) ) ) {
+					duplicate = True;
+					break;
+				}
+			}
+			if (!duplicate) {
+				if (!set_my_additional_dns_hostnames(str_array[i], namecount))
+					return False;
+				namecount++;
+			}
+		}
+
+	}
+	return True;
+}
+
 /****************************************************************************
   Common name initialization code.
 ****************************************************************************/
@@ -144,6 +225,11 @@ bool init_names(void)
 
 	if (!set_netbios_aliases(lp_netbios_aliases())) {
 		DEBUG( 0, ( "init_names: malloc fail.\n" ) );
+		return False;
+	}
+
+	if (!set_additional_dns_hostnames(lp_additional_dns_hostnames())) {
+		DEBUG( 0, ( "init_names: additional dns hostnames malloc fail.\n" ) );
 		return False;
 	}
 

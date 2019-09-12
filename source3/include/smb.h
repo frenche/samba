@@ -685,6 +685,8 @@ struct node_status_extra {
 	/* There really is more here ... */ 
 };
 
+#define MAX_ADDLHOSTNAME_LEN 16
+
 #define SAFE_NETBIOS_CHARS ". -_"
 
 #define PORT_NONE	0

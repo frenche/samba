@@ -1390,6 +1390,19 @@ bool handle_netbios_aliases(struct loadparm_context *lp_ctx, struct loadparm_ser
 	return true;
 }
 
+bool handle_additional_dns_hostnames(struct loadparm_context *lp_ctx, struct loadparm_service *service,
+				     const char *pszParmValue, char **ptr)
+{
+	TALLOC_FREE(lp_ctx->globals->additional_dns_hostnames);
+	lp_ctx->globals->additional_dns_hostnames = str_list_make_v3_const(lp_ctx->globals->ctx,
+									   pszParmValue, NULL);
+
+	if (lp_ctx->s3_fns) {
+		return lp_ctx->s3_fns->set_additional_dns_hostnames(lp_ctx->globals->additional_dns_hostnames);
+	}
+	return true;
+}
+
 /*
  * idmap related parameters
  */
