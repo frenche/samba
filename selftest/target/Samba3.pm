@@ -408,11 +408,13 @@ sub setup_ad_member
 	$substitution_path = "$share_dir/D_$dcvars->{DOMAIN}/u_$dcvars->{DOMAIN}/alice/g_$dcvars->{DOMAIN}/domain users";
 	push(@dirs, $substitution_path);
 
+	my $dns_domain = lc($dcvars->{REALM});
 	my $member_options = "
 	security = ads
         workgroup = $dcvars->{DOMAIN}
         realm = $dcvars->{REALM}
         netbios aliases = foo bar
+        additional dns hostnames =  host1.$dns_domain host2.other.$dns_domain
 	template homedir = /home/%D/%G/%U
 	auth event notification = true
 	password server = $dcvars->{SERVER}
