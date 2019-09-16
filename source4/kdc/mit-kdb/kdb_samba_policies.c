@@ -287,6 +287,7 @@ done:
 	return code;
 }
 
+#if KRB5_KDB_API_VERSION < 10
 krb5_error_code kdb_samba_db_sign_auth_data(krb5_context context,
 					    unsigned int flags,
 					    krb5_const_principal client_princ,
@@ -301,6 +302,29 @@ krb5_error_code kdb_samba_db_sign_auth_data(krb5_context context,
 					    krb5_authdata **tgt_auth_data,
 					    krb5_authdata ***signed_auth_data)
 {
+#else
+krb5_error_code kdb_samba_db_sign_auth_data(krb5_context context,
+					    unsigned int flags,
+					    krb5_const_principal client_princ,
+					    krb5_const_principal server_princ,
+					    krb5_db_entry *client,
+					    krb5_db_entry *server,
+					    krb5_db_entry *krbtgt,
+					    krb5_db_entry *local_krbtgt,
+					    krb5_keyblock *client_key,
+					    krb5_keyblock *server_key,
+					    krb5_keyblock *krbtgt_key,
+					    krb5_keyblock *local_krbtgt_key,
+					    krb5_keyblock *session_key,
+					    krb5_timestamp authtime,
+					    krb5_authdata **tgt_auth_data,
+					    void *authdata_info,
+					    krb5_data ***auth_indicators,
+					    krb5_authdata ***signed_auth_data)
+{
+	krbtgt = krbtgt == NULL ? local_krbtgt : krbtgt;
+	krbtgt_key = krbtgt_key == NULL ? local_krbtgt_key : krbtgt_key;
+#endif
 	krb5_const_principal ks_client_princ;
 	krb5_authdata **authdata = NULL;
 	krb5_boolean is_as_req;
