@@ -1177,6 +1177,7 @@ static int secrets_domain_info_kerberos_keys(struct secrets_domain_info1_passwor
 		return ENOMEM;
 	}
 
+#ifdef _KRB5_HAVE_DES
 	krb5_ret = smb_krb5_create_key_from_string(krb5_ctx,
 						   NULL,
 						   &salt,
@@ -1202,6 +1203,7 @@ static int secrets_domain_info_kerberos_keys(struct secrets_domain_info1_passwor
 		TALLOC_FREE(salt_data);
 		return ENOMEM;
 	}
+#endif /* _KRB5_HAVE_DES */
 
 	krb5_free_context(krb5_ctx);
 no_kerberos:
@@ -1227,6 +1229,7 @@ no_kerberos:
 	keys[idx].value			= arc4_b;
 	idx += 1;
 
+#ifdef _KRB5_HAVE_DES
 #ifdef HAVE_ADS
 	if (des_md5_b.length != 0) {
 		keys[idx].keytype		= ENCTYPE_DES_CBC_MD5;
@@ -1235,6 +1238,7 @@ no_kerberos:
 		idx += 1;
 	}
 #endif /* HAVE_ADS */
+#endif /* _KRB5_HAVE_DES */
 
 	p->salt_data = salt_data;
 	p->default_iteration_count = 4096;
