@@ -467,11 +467,10 @@ int mit_samba_get_pac(struct mit_samba_context *smb_ctx,
 krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 				    krb5_context context,
 				    int flags,
-				    krb5_const_principal client_principal,
+				    krb5_const_principal server_principal,
 				    krb5_db_entry *client,
-				    krb5_db_entry *server,
-				    krb5_db_entry *krbtgt,
-				    krb5_keyblock *krbtgt_keyblock,
+				    krb5_db_entry *header_server,
+				    krb5_keyblock *local_krbtgt_key,
 				    krb5_pac *pac)
 {
 	TALLOC_CTX *tmp_ctx;
@@ -481,8 +480,7 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 	DATA_BLOB *upn_blob = NULL;
 	DATA_BLOB *deleg_blob = NULL;
 	struct samba_kdc_entry *client_skdc_entry = NULL;
-	struct samba_kdc_entry *krbtgt_skdc_entry = NULL;
-	struct samba_kdc_entry *server_skdc_entry = NULL;
+	struct samba_kdc_entry *header_skdc_entry = NULL;
 	bool is_in_db = false;
 	bool is_untrusted = false;
 	size_t num_types = 0;
@@ -510,18 +508,11 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 		}
 	}
 
-	if (server == NULL) {
+	if (header_server == NULL) {
 		return EINVAL;
 	}
-	server_skdc_entry =
-		talloc_get_type_abort(server->e_data,
-				      struct samba_kdc_entry);
-
-	if (krbtgt == NULL) {
-		return EINVAL;
-	}
-	krbtgt_skdc_entry =
-		talloc_get_type_abort(krbtgt->e_data,
+	header_skdc_entry =
+		talloc_get_type_abort(header_server->e_data,
 				      struct samba_kdc_entry);
 
 	tmp_ctx = talloc_named(ctx, 0, "mit_samba_reget_pac context");
@@ -529,12 +520,15 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 		return ENOMEM;
 	}
 
-	code = samba_krbtgt_is_in_db(krbtgt_skdc_entry,
-				     &is_in_db,
-				     &is_untrusted);
-	if (code != 0) {
-		goto done;
+	if (flags & KRB5_KDB_FLAG_CROSS_REALM) {
+		is_in_db = false;
+	} else {
+		is_in_db = true;
 	}
+
+	/* TODO: check the RODCIdentifier in the PAC signature, if it's there
+	 * and we (local_krbtgt) aren't that RODC, don't trust it. */
+	is_untrusted = false;
 
 	if (is_untrusted) {
 		if (client == NULL) {
@@ -575,8 +569,7 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 
 		nt_status = samba_kdc_update_pac_blob(tmp_ctx,
 						      context,
-						      krbtgt_skdc_entry,
-						      server_skdc_entry,
+						      header_skdc_entry,
 						      *pac,
 						      pac_blob,
 						      pac_srv_sig,
@@ -590,13 +583,12 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 
 		if (is_in_db) {
 			/*
-			 * Now check the KDC signature, fetching the correct
-			 * key based on the enc type.
+			 * Now check the KDC signature.
 			 */
 			code = check_pac_checksum(pac_srv_sig->signature,
 						  pac_kdc_sig,
 						  context,
-						  krbtgt_keyblock);
+						  local_krbtgt_key);
 			if (code != 0) {
 				DBG_INFO("PAC KDC signature failed to verify\n");
 				goto done;
@@ -604,7 +596,8 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 		}
 	}
 
-	if (flags & KRB5_KDB_FLAG_CONSTRAINED_DELEGATION) {
+	if ((flags & KRB5_KDB_FLAG_CONSTRAINED_DELEGATION) &&
+	    !(flags & KRB5_KDB_FLAG_CROSS_REALM)) {
 		deleg_blob = talloc_zero(tmp_ctx, DATA_BLOB);
 		if (deleg_blob == NULL) {
 			code = ENOMEM;
@@ -614,8 +607,8 @@ krb5_error_code mit_samba_reget_pac(struct mit_samba_context *ctx,
 		nt_status = samba_kdc_update_delegation_info_blob(tmp_ctx,
 								  context,
 								  *pac,
-								  server->princ,
-								  discard_const(client_principal),
+								  discard_const(server_principal),
+								  header_server->princ,
 								  deleg_blob);
 		if (!NT_STATUS_IS_OK(nt_status)) {
 			DEBUG(0, ("Update delegation info failed: %s\n",
@@ -937,41 +930,16 @@ int mit_samba_check_client_access(struct mit_samba_context *ctx,
 }
 
 int mit_samba_check_s4u2proxy(struct mit_samba_context *ctx,
-			      krb5_db_entry *kentry,
-			      const char *target_name,
-			      bool is_nt_enterprise_name)
+			      const krb5_db_entry *server,
+			      krb5_const_principal target_principal)
 {
-#if 1
-	/*
-	 * This is disabled because mit_samba_update_pac_data() does not handle
-	 * S4U_DELEGATION_INFO
-	 */
-
-	return KRB5KDC_ERR_BADOPTION;
-#else
-	krb5_principal target_principal;
-	int flags = 0;
-	int ret;
-
-	if (is_nt_enterprise_name) {
-		flags = KRB5_PRINCIPAL_PARSE_ENTERPRISE;
-	}
-
-	ret = krb5_parse_name_flags(ctx->context, target_name,
-				    flags, &target_principal);
-	if (ret) {
-		return ret;
-	}
-
-	ret = samba_kdc_check_s4u2proxy(ctx->context,
-					ctx->db_ctx,
-					skdc_entry,
-					target_principal);
-
-	krb5_free_principal(ctx->context, target_principal);
-
-	return ret;
-#endif
+	struct samba_kdc_entry *server_skdc_entry;
+	server_skdc_entry = talloc_get_type_abort(server->e_data,
+						  struct samba_kdc_entry);
+	return samba_kdc_check_s4u2proxy(ctx->context,
+					 ctx->db_ctx,
+					 server_skdc_entry,
+					 target_principal);
 }
 
 static krb5_error_code mit_samba_change_pwd_error(krb5_context context,

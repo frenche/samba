@@ -139,7 +139,7 @@ static void kdb_samba_db_free_principal_e_data(krb5_context context,
 
 kdb_vftabl kdb_function_table = {
 	.maj_ver                   = KRB5_KDB_DAL_MAJOR_VERSION,
-	.min_ver                   = 1,
+	.min_ver                   = 0,
 
 	.init_library              = kdb_samba_init_library,
 	.fini_library              = kdb_samba_fini_library,
@@ -172,4 +172,9 @@ kdb_vftabl kdb_function_table = {
 	.check_allowed_to_delegate = kdb_samba_db_check_allowed_to_delegate,
 
 	.free_principal_e_data     = kdb_samba_db_free_principal_e_data,
+
+	.get_s4u_x509_principal    = NULL,
+	.allowed_to_delegate_from  = NULL,
+	.get_authdata_info         = NULL,
+	.free_authdata_info        = (void(*)(krb5_context,void*)) krb5_pac_free,
 };
