@@ -108,6 +108,12 @@ static NTSTATUS sdb_kt_copy(TALLOC_CTX *mem_ctx,
 			password.length = KRB5_KEY_LENGTH(&s->key);
 			password.data = (char *)KRB5_KEY_DATA(&s->key);
 
+#ifndef _KRB5_HAVE_DES
+			if (enctype == ENCTYPE_DES_CBC_CRC ||
+			    enctype == ENCTYPE_DES_CBC_MD5)
+				continue;
+#endif
+
 			DBG_INFO("smb_krb5_kt_add_entry for enctype=0x%04x\n",
 				  (int)enctype);
 			code = smb_krb5_kt_add_entry(context,
