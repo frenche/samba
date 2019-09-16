@@ -67,6 +67,11 @@ static krb5_error_code keytab_add_keys(TALLOC_CTX *parent_ctx,
 	for (i = 0; enctypes[i]; i++) {
 		krb5_keytab_entry entry;
 
+#ifndef _KRB5_HAVE_DES
+		if (enctypes[i] == ENCTYPE_DES_CBC_CRC || enctypes[i] == ENCTYPE_DES_CBC_MD5)
+			continue;
+#endif
+
 		ZERO_STRUCT(entry);
 
 		ret = smb_krb5_create_key_from_string(context,
@@ -76,8 +81,9 @@ static krb5_error_code keytab_add_keys(TALLOC_CTX *parent_ctx,
 						      enctypes[i],
 						      KRB5_KT_KEY(&entry));
 		if (ret != 0) {
-			*error_string = talloc_strdup(parent_ctx,
-						      "Failed to create key from string");
+			*error_string = talloc_asprintf(parent_ctx,
+						        "Failed to create key from string"
+							", etype: %d", enctypes[i]);
 			return ret;
 		}
 

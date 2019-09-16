@@ -782,6 +782,8 @@ static int setup_kerberos_keys(struct setup_password_fields_io *io)
 		return ldb_oom(ldb);
 	}
 
+#ifdef _KRB5_HAVE_DES
+
 	/*
 	 * create ENCTYPE_DES_CBC_MD5 key out of
 	 * the salt and the cleartext password
@@ -833,6 +835,8 @@ static int setup_kerberos_keys(struct setup_password_fields_io *io)
 	if (!io->g.des_crc.data) {
 		return ldb_oom(ldb);
 	}
+
+#endif /* _KRB5_HAVE_DES */
 
 	return LDB_SUCCESS;
 }
