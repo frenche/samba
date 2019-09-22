@@ -614,7 +614,7 @@ static bool test_PACVerify_workstation_des(struct torture_context *tctx,
 			      NETLOGON_NEG_AUTH2_ADS_FLAGS);
 }
 
-#ifdef SAMBA4_USES_HEIMDAL
+//#ifdef SAMBA4_USES_HEIMDAL
 static NTSTATUS check_primary_group_in_validation(TALLOC_CTX *mem_ctx,
 						  uint16_t validation_level,
 						  const union netr_Validation *validation)
@@ -977,7 +977,7 @@ static bool test_S4U2Self_workstation_aes(struct torture_context *tctx,
 			     TEST_MACHINE_NAME_S4U2SELF_WKSTA,
 			     NETLOGON_NEG_AUTH2_ADS_FLAGS | NETLOGON_NEG_SUPPORTS_AES);
 }
-#endif
+//#endif
 
 struct torture_suite *torture_rpc_remote_pac(TALLOC_CTX *mem_ctx)
 {
@@ -1000,10 +1000,11 @@ struct torture_suite *torture_rpc_remote_pac(TALLOC_CTX *mem_ctx)
 								      &ndr_table_netlogon, TEST_MACHINE_NAME_WKSTA);
 	torture_rpc_tcase_add_test_creds(tcase, "verify-sig-aes", test_PACVerify_workstation_aes);
 
+#ifdef SAMBA4_USES_HEIMDAL
 	tcase = torture_suite_add_machine_workstation_rpc_iface_tcase(suite, "netlogon-member-des",
 								      &ndr_table_netlogon, TEST_MACHINE_NAME_WKSTA_DES);
 	torture_rpc_tcase_add_test_join(tcase, "verify-sig", test_PACVerify_workstation_des);
-#ifdef SAMBA4_USES_HEIMDAL
+#endif
 	tcase = torture_suite_add_machine_bdc_rpc_iface_tcase(suite, "netr-bdc-arcfour",
 							      &ndr_table_netlogon, TEST_MACHINE_NAME_S4U2SELF_BDC);
 	torture_rpc_tcase_add_test_creds(tcase, "s4u2self-arcfour", test_S4U2Self_bdc_arcfour);
@@ -1019,6 +1020,5 @@ struct torture_suite *torture_rpc_remote_pac(TALLOC_CTX *mem_ctx)
 	tcase = torture_suite_add_machine_workstation_rpc_iface_tcase(suite, "netr-mem-aes",
 								      &ndr_table_netlogon, TEST_MACHINE_NAME_S4U2SELF_WKSTA);
 	torture_rpc_tcase_add_test_creds(tcase, "s4u2self-aes", test_S4U2Self_workstation_aes);
-#endif
 	return suite;
 }
