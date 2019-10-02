@@ -2072,12 +2072,14 @@ static bool test_OemChangePasswordUser2(struct dcerpc_pipe *p,
 
 	encode_pw_buffer(lm_pass.data, newpass, STR_ASCII);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &session_key,
 			   NULL);
 	gnutls_cipher_encrypt(cipher_hnd, lm_pass.data, 516);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	E_old_pw_hash(new_lm_hash, old_lm_hash, lm_verifier.hash);
 
 	r.in.server = &server;
@@ -2104,12 +2106,14 @@ static bool test_OemChangePasswordUser2(struct dcerpc_pipe *p,
 	encode_pw_buffer(lm_pass.data, newpass, STR_ASCII);
 	/* Break the old password */
 	old_lm_hash[0]++;
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &session_key,
 			   NULL);
 	gnutls_cipher_encrypt(cipher_hnd, lm_pass.data, 516);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	/* unbreak it for the next operation */
 	old_lm_hash[0]--;
 	E_old_pw_hash(new_lm_hash, old_lm_hash, lm_verifier.hash);
@@ -2133,12 +2137,14 @@ static bool test_OemChangePasswordUser2(struct dcerpc_pipe *p,
 	}
 
 	encode_pw_buffer(lm_pass.data, newpass, STR_ASCII);
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &session_key,
 			   NULL);
 	gnutls_cipher_encrypt(cipher_hnd, lm_pass.data, 516);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	r.in.server = &server;
 	r.in.account = &account;
@@ -2214,12 +2220,14 @@ static bool test_OemChangePasswordUser2(struct dcerpc_pipe *p,
 	E_deshash(newpass, new_lm_hash);
 
 	encode_pw_buffer(lm_pass.data, newpass, STR_ASCII);
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &session_key,
 			   NULL);
 	gnutls_cipher_encrypt(cipher_hnd, lm_pass.data, 516);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 	E_old_pw_hash(new_lm_hash, old_lm_hash, lm_verifier.hash);
 
 	r.in.server = &server;
@@ -2306,6 +2314,7 @@ static bool test_ChangePasswordUser2(struct dcerpc_pipe *p, struct torture_conte
 
 	encode_pw_buffer(lm_pass.data, newpass, STR_ASCII|STR_TERMINATE);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &old_lm_key,
@@ -2314,6 +2323,7 @@ static bool test_ChangePasswordUser2(struct dcerpc_pipe *p, struct torture_conte
 			      lm_pass.data,
 			      516);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	E_old_pw_hash(new_nt_hash, old_lm_hash, lm_verifier.hash);
 
@@ -2409,6 +2419,7 @@ static bool test_ChangePasswordUser2_ntstatus(struct dcerpc_pipe *p, struct tort
 
 	encode_pw_buffer(lm_pass.data, newpass, STR_ASCII|STR_TERMINATE);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &old_lm_key,
@@ -2417,6 +2428,7 @@ static bool test_ChangePasswordUser2_ntstatus(struct dcerpc_pipe *p, struct tort
 			      lm_pass.data,
 			      516);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	E_old_pw_hash(new_nt_hash, old_lm_hash, lm_verifier.hash);
 
@@ -2836,10 +2848,12 @@ bool test_ChangePasswordRandomBytes(struct dcerpc_pipe *p, struct torture_contex
 	generate_random_buffer(_confounder,
 			       sizeof(_confounder));
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	samba_gnutls_arcfour_confounded_md5(&confounder,
 					    &session_key,
 					    &pw_data,
 					    SAMBA_GNUTLS_ENCRYPT);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	memcpy(&u.info25.password.data[516], _confounder, sizeof(_confounder));
 
@@ -2866,6 +2880,7 @@ bool test_ChangePasswordRandomBytes(struct dcerpc_pipe *p, struct torture_contex
 
 	set_pw_in_buffer(nt_pass.data, &new_random_pass);
 
+	GNUTLS_FIPS140_SET_LAX_MODE();
 	gnutls_cipher_init(&cipher_hnd,
 			   GNUTLS_CIPHER_ARCFOUR_128,
 			   &old_nt_key,
@@ -2874,6 +2889,7 @@ bool test_ChangePasswordRandomBytes(struct dcerpc_pipe *p, struct torture_contex
 			      nt_pass.data,
 			      516);
 	gnutls_cipher_deinit(cipher_hnd);
+	GNUTLS_FIPS140_SET_STRICT_MODE();
 
 	E_old_pw_hash(new_nt_hash, old_nt_hash, nt_verifier.hash);
 
